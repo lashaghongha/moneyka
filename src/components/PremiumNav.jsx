@@ -13,8 +13,9 @@ export default function PremiumNav({ page, setPage, plan, onUpgrade }) {
 
   return (
     <div style={{
-      display: "flex", gap: 8, overflowX: "auto", padding: "10px 16px 0",
-      borderBottom: "1px solid rgba(255,255,255,0.05)", marginBottom: 0
+      display: "flex", gap: 8, overflowX: "auto", padding: "12px 16px 6px",
+      borderBottom: "1px solid rgba(255,255,255,0.05)", marginBottom: 0,
+      scrollbarWidth: "none"
     }}>
       {items.map(item => {
         const unlocked = item.req === "pro" ? isPremium : isElite;
@@ -24,16 +25,16 @@ export default function PremiumNav({ page, setPage, plan, onUpgrade }) {
             key={item.id}
             onClick={() => unlocked ? setPage(item.id) : onUpgrade()}
             style={{
-              padding: "8px 14px", borderRadius: 20, border: "none", cursor: "pointer", flexShrink: 0,
+              padding: "10px 18px", borderRadius: 22, border: "none", cursor: "pointer", flexShrink: 0,
               background: active ? (item.req === "elite" ? "#F59E0B" : "#A78BFA") : "#1a2e22",
               color: active ? "#fff" : unlocked ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)",
-              fontWeight: active ? 700 : 400, fontSize: 12, fontFamily: "inherit",
-              display: "flex", alignItems: "center", gap: 5
+              fontWeight: active ? 700 : 400, fontSize: 14, fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 6
             }}
           >
-            <span>{item.icon}</span>
+            <span style={{ fontSize: 16 }}>{item.icon}</span>
             <span>{item.label}</span>
-            {!unlocked && <span style={{ fontSize: 10 }}>🔒</span>}
+            {!unlocked && <span style={{ fontSize: 11 }}>🔒</span>}
           </button>
         );
       })}

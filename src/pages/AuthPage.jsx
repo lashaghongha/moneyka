@@ -62,18 +62,31 @@ export default function AuthPage({ onAuth }) {
     if (phone.length !== 9) { setError("9-ნიშნა ნომერი შეიყვანე"); return; }
     setSending(true); clearErr();
     try {
-      if (!recaptchaRef.current) {
-        recaptchaRef.current = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", {
-          size: "invisible",
-        });
+      // recaptcha-ს გასუფთავება
+      if (recaptchaRef.current) {
+        recaptchaRef.current.clear();
+        recaptchaRef.current = null;
       }
+      const container = document.getElementById("recaptcha-container");
+      if (container) container.innerHTML = "";
+
+      recaptchaRef.current = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", {
+        size: "normal",
+        callback: () => {},
+      });
+      await recaptchaRef.current.render();
+
       const fullPhone = "+995" + phone;
       const result = await signInWithPhoneNumber(firebaseAuth, fullPhone, recaptchaRef.current);
       confirmRef.current = result;
       setStep("otp");
     } catch (e) {
-      console.error(e);
-      setError("SMS ვერ გაიგზავნა. სცადე თავიდან.");
+      console.error("Firebase OTP error:", e.code, e.message);
+      const msg = e.code === "auth/invalid-phone-number"  ? "ნომერი არასწორია" :
+                  e.code === "auth/too-many-requests"     ? "ძალიან ბევრი მცდელობა, მოგვიანებით სცადე" :
+                  e.code === "auth/quota-exceeded"        ? "SMS ლიმიტი ამოიწურა" :
+                  `შეცდომა: ${e.code || e.message}`;
+      setError(msg);
       if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null; }
     }
     setSending(false);

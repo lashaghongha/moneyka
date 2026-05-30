@@ -63,9 +63,6 @@ export default function AdminLogin({ onLogin }) {
           </form>
         </div>
 
-        <p style={{ textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 12, marginTop: 14 }}>
-          default key: moneykaadmin2024
-        </p>
       </div>
     </div>
   );

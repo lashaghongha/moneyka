@@ -1,4 +1,4 @@
-const BASE = "http://localhost:5141/api/admin";
+const BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:5141/api") + "/admin";
 
 async function req(path, options = {}) {
   const key = localStorage.getItem("mk_admin_key") || "";

@@ -44,6 +44,15 @@ export default function App() {
   // ძველი localStorage session გასუფთავება (migration)
   localStorage.removeItem("moneyka_session");
 
+  // v1.0 data reset — test მონაცემების გასუფთავება
+  if (!localStorage.getItem("mk_data_v1")) {
+    localStorage.removeItem("moneyka_transactions");
+    localStorage.removeItem("moneyka_goals");
+    localStorage.removeItem("moneyka_subs");
+    localStorage.removeItem("moneyka_budgets");
+    localStorage.setItem("mk_data_v1", "done");
+  }
+
   const [loggedIn, setLoggedIn]           = useState(() => auth.isLoggedIn());
   const [page, setPage]                   = useState("home");
   const [transactions, setTransactions]   = useState(() => storage.getTransactions());

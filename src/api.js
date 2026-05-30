@@ -14,11 +14,14 @@ async function req(path, options = {}) {
   return res.json();
 }
 
-// User tracking (ping on app start)
-export const pingUser    = (deviceId, plan, name, phone = "") => req("/users/ping", { method: "POST", body: JSON.stringify({ deviceId, plan, name, phone }) });
-export const getUserPlan = (deviceId)       => req(`/users/${deviceId}/plan`);
-export const setUserPlan = (deviceId, plan) => req(`/users/${deviceId}/plan`, { method: "PUT", body: JSON.stringify({ plan }) });
-export const checkPhone  = (phone)          => req("/users/check-phone", { method: "POST", body: JSON.stringify({ phone }) });
+// User tracking
+export const pingUser          = (deviceId, plan, name, phone = "", passwordHash = "") =>
+  req("/users/ping", { method: "POST", body: JSON.stringify({ deviceId, plan, name, phone, passwordHash }) });
+export const getUserPlan       = (deviceId)       => req(`/users/${deviceId}/plan`);
+export const setUserPlan       = (deviceId, plan) => req(`/users/${deviceId}/plan`, { method: "PUT", body: JSON.stringify({ plan }) });
+export const checkPhone        = (phone)          => req("/users/check-phone",    { method: "POST", body: JSON.stringify({ phone }) });
+export const loginWithPassword = (phone, passwordHash) =>
+  req("/users/login-password", { method: "POST", body: JSON.stringify({ phone, passwordHash }) });
 
 // AI (goes through backend)
 export const getAdvice            = (payload) => req("/ai/advice",  { method: "POST", body: JSON.stringify(payload) });
@@ -27,4 +30,3 @@ export const getHabitsSuggestions = (payload) => req("/ai/habits",  { method: "P
 
 // Push notifications
 export const checkPushReminders = (payload) => req("/push/check", { method: "POST", body: JSON.stringify(payload) });
-

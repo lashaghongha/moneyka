@@ -204,14 +204,28 @@ export default function App() {
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
       `}</style>
 
-      {/* Plan color accent bar */}
+      {/* Top plan header */}
       <div style={{
-        background: isPremium
-          ? (plan === "elite" ? "linear-gradient(135deg,#2a1a00,#1a1000)" : "linear-gradient(135deg,#1a0d3a,#0d0d2e)")
+        background: plan === "elite"
+          ? "linear-gradient(135deg,#2a1a00,#1a1000)"
+          : plan === "pro"
+          ? "linear-gradient(135deg,#1a0d3a,#0d0d2e)"
           : "linear-gradient(135deg,#1a3a2a,#0d2419)",
-        height: 4,
-        borderBottom: `1px solid ${planColor}33`
-      }} />
+        padding: "env(safe-area-inset-top, 14px) 20px 12px",
+        paddingTop: "max(env(safe-area-inset-top, 0px) + 14px, 14px)",
+        display: "flex", justifyContent: "center", alignItems: "center",
+        borderBottom: `2px solid ${planColor}44`,
+        minHeight: 48
+      }}>
+        <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>
+          {PAGE_TITLES[currentPage]}
+        </span>
+        {isPremium && (
+          <span style={{ position: "absolute", right: 20, fontSize: 16 }}>
+            {plan === "elite" ? "👑" : "⭐"}
+          </span>
+        )}
+      </div>
 
       {/* Premium sub-nav */}
       {!showAdd && (
@@ -219,7 +233,7 @@ export default function App() {
       )}
 
       {/* Page Content */}
-      <div style={{ overflowY: "auto", height: "calc(100vh - 100px)" }}>
+      <div style={{ overflowY: "auto", height: "calc(100vh - 148px)" }}>
         {showAdd ? (
           <AddPage onAdd={handleTxAdded} defaultCat={addCat} onClose={() => setShowAdd(false)} plan={plan} cur={cur} />
         ) : page === "home" ? (

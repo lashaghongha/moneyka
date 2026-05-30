@@ -1,7 +1,6 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { auth } from "../storage";
-import { firebaseAuth } from "../firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { checkPhone } from "../api";
 
 const PIN_LEN = 4;
 
@@ -39,70 +38,54 @@ export default function AuthPage({ onAuth }) {
 
   const [name,    setName]    = useState("");
   const [phone,   setPhone]   = useState("");
-  const [otp,     setOtp]     = useState("");
   const [pin,     setPin]     = useState("");
   const [pin2,    setPin2]    = useState("");
   const [error,   setError]   = useState("");
   const [shake,   setShake]   = useState(false);
   const [sending, setSending] = useState(false);
 
-  const confirmRef = useRef(null);
-  const recaptchaRef = useRef(null);
-
   function triggerShake() { setShake(true); setTimeout(() => setShake(false), 500); }
   function clearErr()     { setError(""); }
 
   function goMode(m, s = "name") {
     setMode(m); setStep(s);
-    setName(""); setPhone(""); setOtp(""); setPin(""); setPin2(""); clearErr();
+    setName(""); setPhone(""); setPin(""); setPin2(""); clearErr();
   }
 
-  // ── Firebase OTP გაგზავნა ──────────────────────────────────────────────────
-  async function sendOtp() {
+  // ── ტელეფონის შემოწმება ────────────────────────────────────────────────────
+  async function handlePhoneNext() {
     if (phone.length !== 9) { setError("9-ნიშნა ნომერი შეიყვანე"); return; }
     setSending(true); clearErr();
     try {
-      // recaptcha-ს გასუფთავება
-      if (recaptchaRef.current) {
-        recaptchaRef.current.clear();
-        recaptchaRef.current = null;
-      }
-      const container = document.getElementById("recaptcha-container");
-      if (container) container.innerHTML = "";
-
-      recaptchaRef.current = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", {
-        size: "normal",
-        callback: () => {},
-      });
-      await recaptchaRef.current.render();
-
       const fullPhone = "+995" + phone;
-      const result = await signInWithPhoneNumber(firebaseAuth, fullPhone, recaptchaRef.current);
-      confirmRef.current = result;
-      setStep("otp");
-    } catch (e) {
-      console.error("Firebase OTP error:", e.code, e.message);
-      const msg = e.code === "auth/invalid-phone-number"  ? "ნომერი არასწორია" :
-                  e.code === "auth/too-many-requests"     ? "ძალიან ბევრი მცდელობა, მოგვიანებით სცადე" :
-                  e.code === "auth/quota-exceeded"        ? "SMS ლიმიტი ამოიწურა" :
-                  `შეცდომა: ${e.code || e.message}`;
-      setError(msg);
-      if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null; }
-    }
-    setSending(false);
-  }
 
-  // ── OTP დადასტურება ────────────────────────────────────────────────────────
-  async function verifyOtp() {
-    if (otp.length < 6) { setError("6-ნიშნა კოდი შეიყვანე"); return; }
-    setSending(true); clearErr();
-    try {
-      await confirmRef.current.confirm(otp);
-      if (mode === "register") setStep("pin");
-      if (mode === "forgot")   { auth.resetPin(); setStep("pin"); }
+      if (mode === "register") {
+        const { exists } = await checkPhone(fullPhone);
+        if (exists) {
+          setError("ეს ნომერი უკვე დარეგისტრირებულია");
+          setSending(false); return;
+        }
+        setStep("pin");
+      }
+
+      if (mode === "forgot") {
+        // forgot PIN: ვამოწმებთ ეს ნომერი რეგისტრირებულია თუ არა
+        const { exists } = await checkPhone(fullPhone);
+        if (!exists) {
+          setError("ეს ნომერი არარეგისტრირებულია");
+          setSending(false); return;
+        }
+        // ვამოწმებთ მათ phone-ს localStorage-ში
+        const savedPhone = localStorage.getItem("moneyka_user_phone") || "";
+        if (savedPhone && savedPhone !== fullPhone) {
+          setError("ეს ნომერი ამ მოწყობილობაზე არ არის");
+          setSending(false); return;
+        }
+        auth.resetPin();
+        setStep("pin");
+      }
     } catch {
-      setError("კოდი არასწორია ან ვადა გასულია");
-      triggerShake();
+      setError("კავშირის შეცდომა, სცადე ახლიდან");
     }
     setSending(false);
   }
@@ -158,12 +141,10 @@ export default function AuthPage({ onAuth }) {
   const headlines = {
     login_pin:      ["შესვლა",              `გამარჯობა, ${auth.getName()}!`],
     register_name:  ["რეგისტრაცია",         "შეიყვანე შენი სახელი"],
-    register_phone: ["ტელეფონის ნომერი",    "SMS კოდი გამოგეგზავნება"],
-    register_otp:   ["SMS კოდი",            "შეიყვანე მიღებული 6-ნიშნა კოდი"],
+    register_phone: ["ტელეფონის ნომერი",    "ერთი ანგარიში — ერთი ნომერი"],
     register_pin:   ["PIN კოდი",            "4-ნიშნა კოდი — გახსოვდეს!"],
     register_pin2:  ["გაიმეორე PIN",        "ისევ შეიყვანე დასადასტურებლად"],
     forgot_phone:   ["PIN-ის აღდგენა",      "შეიყვანე რეგისტრაციის ნომერი"],
-    forgot_otp:     ["SMS კოდი",            "შეიყვანე მიღებული კოდი"],
     forgot_pin:     ["ახალი PIN",           "შეიყვანე ახალი 4-ნიშნა კოდი"],
     forgot_pin2:    ["გაიმეორე PIN",        "ისევ შეიყვანე"],
   };
@@ -182,7 +163,6 @@ export default function AuthPage({ onAuth }) {
       maxWidth: 390, margin: "0 auto"
     }}>
       <style>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}`}</style>
-      <div id="recaptcha-container" />
 
       {/* Logo */}
       <div style={{
@@ -225,38 +205,12 @@ export default function AuthPage({ onAuth }) {
         {step === "phone" && (
           <>
             <PhoneInput value={phone} onChange={setPhone} />
-            <button onClick={sendOtp} disabled={sending}
+            <button onClick={handlePhoneNext} disabled={sending}
               style={{ width: "100%", background: "linear-gradient(135deg,#4CAF82,#2d8f5a)", border: "none",
                 borderRadius: 14, padding: "15px", color: "#fff", fontWeight: 700,
                 fontSize: 16, cursor: sending ? "default" : "pointer", fontFamily: "inherit",
                 opacity: sending ? 0.7 : 1 }}>
-              {sending ? "⏳ იგზავნება..." : "კოდის მიღება →"}
-            </button>
-          </>
-        )}
-
-        {/* ── OTP ── */}
-        {step === "otp" && (
-          <>
-            <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="••••••" autoFocus inputMode="numeric"
-              style={{ width: "100%", background: "#0d1f16",
-                border: "1px solid rgba(76,175,82,0.25)", borderRadius: 14,
-                padding: "15px 16px", color: "#fff", fontSize: 24, outline: "none",
-                marginBottom: 14, boxSizing: "border-box", fontFamily: "inherit",
-                textAlign: "center", letterSpacing: 8 }} />
-            <button onClick={verifyOtp} disabled={sending}
-              style={{ width: "100%", background: "linear-gradient(135deg,#4CAF82,#2d8f5a)", border: "none",
-                borderRadius: 14, padding: "15px", color: "#fff", fontWeight: 700,
-                fontSize: 16, cursor: sending ? "default" : "pointer", fontFamily: "inherit",
-                opacity: sending ? 0.7 : 1 }}>
-              {sending ? "⏳ ..." : "დადასტურება →"}
-            </button>
-            <button onClick={() => setStep("phone")}
-              style={{ width: "100%", background: "none", border: "none",
-                color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 10,
-                cursor: "pointer", fontFamily: "inherit" }}>
-              ← ნომრის შეცვლა
+              {sending ? "⏳ შემოწმება..." : "გაგრძელება →"}
             </button>
           </>
         )}

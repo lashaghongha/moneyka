@@ -11,7 +11,8 @@ export default function UsersTable({ users, onChangePlan, onDelete }) {
     .filter(u => filter === "all" || u.plan === filter)
     .filter(u => !search ||
       u.deviceId.toLowerCase().includes(search.toLowerCase()) ||
-      (u.name || "").toLowerCase().includes(search.toLowerCase()));
+      (u.name  || "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.phone || "").toLowerCase().includes(search.toLowerCase()));
 
   return (
     <Card>
@@ -43,7 +44,7 @@ export default function UsersTable({ users, onChangePlan, onDelete }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              {["#", "სახელი", "Device ID", "პლანი", "პირველი შესვლა", "ბოლო აქტ.", "ქმედება"].map(h => (
+              {["#", "სახელი", "ტელეფონი", "Device ID", "პლანი", "პირველი შესვლა", "ბოლო აქტ.", "ქმედება"].map(h => (
                 <th key={h} style={{
                   padding: "10px 12px", textAlign: "left",
                   color: "rgba(255,255,255,0.35)", fontSize: 12, fontWeight: 600,
@@ -54,7 +55,7 @@ export default function UsersTable({ users, onChangePlan, onDelete }) {
           <tbody>
             {shown.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 14 }}>
+                <td colSpan={8} style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 14 }}>
                   მომხმარებელი არ მოიძებნა
                 </td>
               </tr>
@@ -67,6 +68,9 @@ export default function UsersTable({ users, onChangePlan, onDelete }) {
                 <td style={{ padding: "12px", color: "rgba(255,255,255,0.3)", fontSize: 13 }}>{u.id}</td>
                 <td style={{ padding: "12px", fontSize: 13, color: u.name ? "#fff" : "rgba(255,255,255,0.2)", fontWeight: u.name ? 600 : 400 }}>
                   {u.name || "—"}
+                </td>
+                <td style={{ padding: "12px", fontSize: 13, color: u.phone ? "#4CAF82" : "rgba(255,255,255,0.2)", fontFamily: "monospace" }}>
+                  {u.phone || "—"}
                 </td>
                 <td style={{
                   padding: "12px", fontFamily: "monospace", fontSize: 12,

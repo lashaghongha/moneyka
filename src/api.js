@@ -15,7 +15,7 @@ async function req(path, options = {}) {
 }
 
 // User tracking (ping on app start)
-export const pingUser   = (deviceId, plan, name) => req("/users/ping", { method: "POST", body: JSON.stringify({ deviceId, plan, name }) });
+export const pingUser   = (deviceId, plan, name, phone = "") => req("/users/ping", { method: "POST", body: JSON.stringify({ deviceId, plan, name, phone }) });
 export const getUserPlan = (deviceId)       => req(`/users/${deviceId}/plan`);
 export const setUserPlan = (deviceId, plan) => req(`/users/${deviceId}/plan`, { method: "PUT", body: JSON.stringify({ plan }) });
 

@@ -159,7 +159,7 @@ export default function App() {
     if (!loggedIn) return;
     const deviceId = getDeviceId();
     // Ping-ი backend-ის plan-ს აბრუნებს (admin-მა შეიძლება შეცვალა)
-    api.pingUser(deviceId, storage.getPlan(), auth.getName())
+    api.pingUser(deviceId, storage.getPlan(), auth.getName(), localStorage.getItem("moneyka_user_phone") || "")
       .then(({ plan }) => {
         if (plan && plan !== storage.getPlan()) {
           storage.savePlan(plan);

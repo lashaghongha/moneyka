@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { auth } from "../storage";
+import { firebaseAuth } from "../firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
 const PIN_LEN = 4;
 
@@ -32,25 +34,64 @@ function PhoneInput({ value, onChange }) {
 export default function AuthPage({ onAuth }) {
   const isReg = auth.isRegistered();
 
-  // mode: "login" | "register" | "forgot"
   const [mode, setMode]   = useState(isReg ? "login" : "register");
-  // register steps: "name" → "phone" → "pin" → "pin2"
-  // forgot steps:   "phone" → "pin" → "pin2"
   const [step, setStep]   = useState(isReg ? "pin" : "name");
 
-  const [name, setName]   = useState("");
-  const [phone, setPhone] = useState("");
-  const [pin, setPin]     = useState("");
-  const [pin2, setPin2]   = useState("");
-  const [error, setError] = useState("");
-  const [shake, setShake] = useState(false);
+  const [name,    setName]    = useState("");
+  const [phone,   setPhone]   = useState("");
+  const [otp,     setOtp]     = useState("");
+  const [pin,     setPin]     = useState("");
+  const [pin2,    setPin2]    = useState("");
+  const [error,   setError]   = useState("");
+  const [shake,   setShake]   = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const confirmRef = useRef(null);
+  const recaptchaRef = useRef(null);
 
   function triggerShake() { setShake(true); setTimeout(() => setShake(false), 500); }
   function clearErr()     { setError(""); }
 
   function goMode(m, s = "name") {
     setMode(m); setStep(s);
-    setName(""); setPhone(""); setPin(""); setPin2(""); clearErr();
+    setName(""); setPhone(""); setOtp(""); setPin(""); setPin2(""); clearErr();
+  }
+
+  // ── Firebase OTP გაგზავნა ──────────────────────────────────────────────────
+  async function sendOtp() {
+    if (phone.length !== 9) { setError("9-ნიშნა ნომერი შეიყვანე"); return; }
+    setSending(true); clearErr();
+    try {
+      if (!recaptchaRef.current) {
+        recaptchaRef.current = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", {
+          size: "invisible",
+        });
+      }
+      const fullPhone = "+995" + phone;
+      const result = await signInWithPhoneNumber(firebaseAuth, fullPhone, recaptchaRef.current);
+      confirmRef.current = result;
+      setStep("otp");
+    } catch (e) {
+      console.error(e);
+      setError("SMS ვერ გაიგზავნა. სცადე თავიდან.");
+      if (recaptchaRef.current) { recaptchaRef.current.clear(); recaptchaRef.current = null; }
+    }
+    setSending(false);
+  }
+
+  // ── OTP დადასტურება ────────────────────────────────────────────────────────
+  async function verifyOtp() {
+    if (otp.length < 6) { setError("6-ნიშნა კოდი შეიყვანე"); return; }
+    setSending(true); clearErr();
+    try {
+      await confirmRef.current.confirm(otp);
+      if (mode === "register") setStep("pin");
+      if (mode === "forgot")   { auth.resetPin(); setStep("pin"); }
+    } catch {
+      setError("კოდი არასწორია ან ვადა გასულია");
+      triggerShake();
+    }
+    setSending(false);
   }
 
   // ── PIN keypad ─────────────────────────────────────────────────────────────
@@ -70,7 +111,6 @@ export default function AuthPage({ onAuth }) {
   async function handlePinComplete(entered) {
     clearErr();
 
-    // ── login ──
     if (mode === "login") {
       const ok = await auth.login(entered);
       if (ok) { onAuth(); return; }
@@ -78,7 +118,6 @@ export default function AuthPage({ onAuth }) {
       setPin(""); triggerShake(); return;
     }
 
-    // ── register ──
     if (mode === "register") {
       if (step === "pin")  { setStep("pin2"); return; }
       if (step === "pin2") {
@@ -90,7 +129,6 @@ export default function AuthPage({ onAuth }) {
       }
     }
 
-    // ── forgot ──
     if (mode === "forgot") {
       if (step === "pin")  { setStep("pin2"); return; }
       if (step === "pin2") {
@@ -103,34 +141,21 @@ export default function AuthPage({ onAuth }) {
     }
   }
 
-  // ── forgot: check phone ────────────────────────────────────────────────────
-  function handleCheckPhone() {
-    clearErr();
-    if (phone.length < 9) { setError("სრული ნომერი შეიყვანე"); return; }
-    const ok = auth.checkPhone(phone);
-    if (ok) {
-      auth.resetPin();   // PIN hash წაიშლება, მონაცემი რჩება
-      setStep("pin");
-    } else {
-      setError("ეს ნომერი არ ემთხვევა რეგისტრაციის ნომერს");
-      triggerShake();
-    }
-  }
-
-  // ── UI helpers ─────────────────────────────────────────────────────────────
+  // ── UI ─────────────────────────────────────────────────────────────────────
   const headlines = {
-    login_pin:      ["შესვლა",           `გამარჯობა, ${auth.getName()}!`],
-    register_name:  ["რეგისტრაცია",      "შეიყვანე შენი სახელი"],
-    register_phone: ["ტელეფონის ნომერი", "PIN-ის აღსადგენად გამოიყენება"],
-    register_pin:   ["PIN კოდი",         "4-ნიშნა კოდი — გახსოვდეს!"],
-    register_pin2:  ["გაიმეორე PIN",     "ისევ შეიყვანე დასადასტურებლად"],
-    forgot_phone:   ["PIN-ის აღდგენა",   "შეიყვანე რეგისტრაციის ნომერი"],
-    forgot_pin:     ["ახალი PIN",        "შეიყვანე ახალი 4-ნიშნა კოდი"],
-    forgot_pin2:    ["გაიმეორე PIN",     "ისევ შეიყვანე"],
+    login_pin:      ["შესვლა",              `გამარჯობა, ${auth.getName()}!`],
+    register_name:  ["რეგისტრაცია",         "შეიყვანე შენი სახელი"],
+    register_phone: ["ტელეფონის ნომერი",    "SMS კოდი გამოგეგზავნება"],
+    register_otp:   ["SMS კოდი",            "შეიყვანე მიღებული 6-ნიშნა კოდი"],
+    register_pin:   ["PIN კოდი",            "4-ნიშნა კოდი — გახსოვდეს!"],
+    register_pin2:  ["გაიმეორე PIN",        "ისევ შეიყვანე დასადასტურებლად"],
+    forgot_phone:   ["PIN-ის აღდგენა",      "შეიყვანე რეგისტრაციის ნომერი"],
+    forgot_otp:     ["SMS კოდი",            "შეიყვანე მიღებული კოდი"],
+    forgot_pin:     ["ახალი PIN",           "შეიყვანე ახალი 4-ნიშნა კოდი"],
+    forgot_pin2:    ["გაიმეორე PIN",        "ისევ შეიყვანე"],
   };
   const hkey = `${mode}_${step}`;
   const [headline, sub] = headlines[hkey] || ["MoneyKa", ""];
-
   const showKeypad  = step === "pin" || step === "pin2";
   const currentPin  = step === "pin2" ? pin2 : pin;
 
@@ -144,6 +169,7 @@ export default function AuthPage({ onAuth }) {
       maxWidth: 390, margin: "0 auto"
     }}>
       <style>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}`}</style>
+      <div id="recaptcha-container" />
 
       {/* Logo */}
       <div style={{
@@ -157,7 +183,6 @@ export default function AuthPage({ onAuth }) {
       <h1 style={{ color: "#4CAF82", fontSize: 22, fontWeight: 800, margin: "0 0 6px" }}>MoneyKa</h1>
       <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, margin: "0 0 32px" }}>ჭკვიანი ფინანსური ასისტენტი</p>
 
-      {/* Card */}
       <div style={{
         width: "100%", background: "#1a2e22", borderRadius: 24, padding: "28px 24px",
         border: "1px solid rgba(76,175,82,0.15)", boxShadow: "0 16px 48px rgba(0,0,0,0.4)"
@@ -183,24 +208,42 @@ export default function AuthPage({ onAuth }) {
           </>
         )}
 
-        {/* ── Phone (register or forgot) ── */}
+        {/* ── Phone ── */}
         {step === "phone" && (
           <>
-            {mode === "register" && (
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginBottom: 10, lineHeight: 1.5 }}>
-                ეს ნომერი PIN-ის დავიწყების შემთხვევაში დაგეხმარება. სერვერზე არ იგზავნება.
-              </p>
-            )}
             <PhoneInput value={phone} onChange={setPhone} />
-            <button
-              onClick={mode === "forgot" ? handleCheckPhone : () => {
-                if (phone.length === 9) { setStep("pin"); clearErr(); }
-                else setError("9-ნიშნა ნომერი შეიყვანე");
-              }}
+            <button onClick={sendOtp} disabled={sending}
               style={{ width: "100%", background: "linear-gradient(135deg,#4CAF82,#2d8f5a)", border: "none",
                 borderRadius: 14, padding: "15px", color: "#fff", fontWeight: 700,
-                fontSize: 16, cursor: "pointer", fontFamily: "inherit" }}>
-              {mode === "forgot" ? "შემოწმება" : "გაგრძელება →"}
+                fontSize: 16, cursor: sending ? "default" : "pointer", fontFamily: "inherit",
+                opacity: sending ? 0.7 : 1 }}>
+              {sending ? "⏳ იგზავნება..." : "კოდის მიღება →"}
+            </button>
+          </>
+        )}
+
+        {/* ── OTP ── */}
+        {step === "otp" && (
+          <>
+            <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="••••••" autoFocus inputMode="numeric"
+              style={{ width: "100%", background: "#0d1f16",
+                border: "1px solid rgba(76,175,82,0.25)", borderRadius: 14,
+                padding: "15px 16px", color: "#fff", fontSize: 24, outline: "none",
+                marginBottom: 14, boxSizing: "border-box", fontFamily: "inherit",
+                textAlign: "center", letterSpacing: 8 }} />
+            <button onClick={verifyOtp} disabled={sending}
+              style={{ width: "100%", background: "linear-gradient(135deg,#4CAF82,#2d8f5a)", border: "none",
+                borderRadius: 14, padding: "15px", color: "#fff", fontWeight: 700,
+                fontSize: 16, cursor: sending ? "default" : "pointer", fontFamily: "inherit",
+                opacity: sending ? 0.7 : 1 }}>
+              {sending ? "⏳ ..." : "დადასტურება →"}
+            </button>
+            <button onClick={() => setStep("phone")}
+              style={{ width: "100%", background: "none", border: "none",
+                color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 10,
+                cursor: "pointer", fontFamily: "inherit" }}>
+              ← ნომრის შეცვლა
             </button>
           </>
         )}
@@ -238,7 +281,6 @@ export default function AuthPage({ onAuth }) {
           </>
         )}
 
-        {/* Error */}
         {error && (
           <p style={{ color: "#E05470", fontSize: 12, textAlign: "center", marginTop: 14, fontWeight: 600 }}>
             {error}
@@ -246,7 +288,6 @@ export default function AuthPage({ onAuth }) {
         )}
       </div>
 
-      {/* Footer links */}
       <div style={{ marginTop: 20, textAlign: "center", display: "flex", gap: 20, justifyContent: "center" }}>
         {mode === "login" && (
           <>

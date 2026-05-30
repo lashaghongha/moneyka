@@ -204,24 +204,14 @@ export default function App() {
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
       `}</style>
 
-      {/* Status Bar */}
+      {/* Plan color accent bar */}
       <div style={{
         background: isPremium
           ? (plan === "elite" ? "linear-gradient(135deg,#2a1a00,#1a1000)" : "linear-gradient(135deg,#1a0d3a,#0d0d2e)")
           : "linear-gradient(135deg,#1a3a2a,#0d2419)",
-        padding: "12px 20px 10px",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        borderBottom: `1px solid ${planColor}22`
-      }}>
-        <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 600 }}>9:41</span>
-        <h1 style={{ color: "#fff", fontSize: 17, fontWeight: 700, margin: 0, textAlign: "center" }}>
-          {PAGE_TITLES[currentPage]}
-        </h1>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {isPremium && <span style={{ fontSize: 12 }}>{plan === "elite" ? "👑" : "⭐"}</span>}
-          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>🔋</span>
-        </div>
-      </div>
+        height: 4,
+        borderBottom: `1px solid ${planColor}33`
+      }} />
 
       {/* Premium sub-nav */}
       {!showAdd && (

@@ -1,4 +1,8 @@
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:5141/api";
+const BASE = import.meta.env.VITE_API_URL ?? (
+  typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? "https://moneyka-api-production.up.railway.app/api"
+    : "http://localhost:5141/api"
+);
 
 async function req(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {

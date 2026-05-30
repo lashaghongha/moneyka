@@ -1,0 +1,30 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  background: #0a160f;
+  transition: background 0.3s;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Light theme: invert + hue-rotate keeps greens/reds/purples correct */
+[data-theme="light"] .mk-app {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Cancel filter on real images so they look normal */
+[data-theme="light"] .mk-app img {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+[data-theme="light"] body {
+  background: #f5f9f6;
+}

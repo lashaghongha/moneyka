@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoneyKa — ფასები</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a160f; color: #fff; font-family: 'Segoe UI', Georgia, serif; min-height: 100vh; padding: 40px 20px; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    .logo { text-align: center; margin-bottom: 40px; }
+    .logo h1 { color: #4CAF82; font-size: 32px; font-weight: 800; }
+    .logo p { color: rgba(255,255,255,0.4); margin-top: 6px; }
+    .plans { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+    .plan { background: #1a2e22; border: 1px solid rgba(76,175,82,0.2); border-radius: 20px; padding: 32px 28px; flex: 1; min-width: 240px; max-width: 320px; }
+    .plan.pro { border-color: rgba(167,139,250,0.4); }
+    .plan.elite { border-color: rgba(245,158,11,0.4); }
+    .plan h2 { font-size: 22px; margin-bottom: 6px; }
+    .plan .price { font-size: 36px; font-weight: 800; margin: 12px 0 4px; }
+    .plan .price span { font-size: 16px; font-weight: 400; color: rgba(255,255,255,0.5); }
+    .plan ul { list-style: none; margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .plan ul li { color: rgba(255,255,255,0.75); font-size: 14px; }
+    .plan ul li::before { content: "✓ "; color: #4CAF82; font-weight: 700; }
+    .plan.elite ul li::before { color: #F59E0B; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-bottom: 8px; }
+    .badge.pro { background: rgba(167,139,250,0.2); color: #A78BFA; }
+    .badge.elite { background: rgba(245,158,11,0.2); color: #F59E0B; }
+    .free { text-align: center; margin-top: 32px; color: rgba(255,255,255,0.4); font-size: 14px; }
+    a { color: #4CAF82; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">
+      <h1>₾ MoneyKa</h1>
+      <p>ჭკვიანი ფინანსური ასისტენტი</p>
+    </div>
+
+    <div class="plans">
+      <div class="plan pro">
+        <span class="badge pro">პოპულარული</span>
+        <h2>⭐ Pro</h2>
+        <div class="price">$2.99 <span>/month</span></div>
+        <ul>
+          <li>Unlimited transactions</li>
+          <li>Unlimited savings goals</li>
+          <li>Full analytics &amp; trends</li>
+          <li>AI financial advisor</li>
+          <li>Recurring transactions</li>
+          <li>PDF / Excel export</li>
+          <li>Smart budget alerts</li>
+          <li>Subscription tracker</li>
+        </ul>
+      </div>
+
+      <div class="plan elite">
+        <span class="badge elite">სრული</span>
+        <h2>👑 Elite</h2>
+        <div class="price">$4.99 <span>/month</span></div>
+        <ul>
+          <li>Everything in Pro</li>
+          <li>Habit analysis (AI)</li>
+          <li>Family accounts (3)</li>
+          <li>Priority support</li>
+          <li>Early access to features</li>
+          <li>Annual financial report</li>
+          <li>Personal finance plan</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="free">
+      Free plan also available — <a href="https://moneyka.vercel.app">get started</a><br/>
+      Payments processed by <strong>Paddle</strong> · Secure · Cancel anytime
+    </p>
+  </div>
+</body>
+</html>

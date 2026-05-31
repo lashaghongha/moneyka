@@ -197,7 +197,10 @@ export default function SubscriptionsPage({ isPremium, onUpgrade, subs, setSubs,
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
         {filtered.map(s => {
           const monthlyPrice = s.billing === "yearly" ? s.price / 12 : s.price;
-          const days         = Math.ceil((new Date(s.nextDate) - new Date("2024-05-25")) / 86400000);
+          const today        = new Date(new Date().toISOString().split("T")[0]);
+          const days         = Math.ceil((new Date(s.nextDate) - today) / 86400000);
+          const nd           = new Date(s.nextDate);
+          const dateLabel    = `${nd.getDate()} ${["იან","თებ","მარ","აპრ","მაი","ივნ","ივლ","აგვ","სექ","ოქტ","ნოე","დეკ"][nd.getMonth()]}`;
           return (
             <div key={s.id} style={{ background: "#1a2e22", borderRadius: 18, padding: "14px 16px", border: `1px solid ${s.color}22` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -217,7 +220,7 @@ export default function SubscriptionsPage({ isPremium, onUpgrade, subs, setSubs,
                     <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>{s.category}</span>
                     <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 10 }}>·</span>
                     <span style={{ color: days <= 3 ? "#E05470" : "rgba(255,255,255,0.3)", fontSize: 11 }}>
-                      📅 {days <= 0 ? "დღეს!" : days === 1 ? "ხვალ" : `${days}დ`}
+                      {dateLabel} · {days <= 0 ? "დღეს!" : days === 1 ? "ხვალ" : `${days} დღეში`}
                     </span>
                   </div>
                 </div>

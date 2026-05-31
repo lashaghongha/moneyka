@@ -66,6 +66,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
   const unallocated     = income - totalBudget - (Object.values(goalBudgets).reduce((s, v) => s + (parseFloat(v) || 0), 0));
 
   function saveBudget(catId, val) {
+    document.activeElement?.blur();
     const next = { ...budgets, [catId]: parseFloat(val) || 0 };
     setBudgets(next);
     storage.saveBudgets(next);
@@ -74,6 +75,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
   }
 
   function saveGoalBudget(goalId, val) {
+    document.activeElement?.blur();
     const next = { ...goalBudgets, [goalId]: parseFloat(val) || 0 };
     setGoalBudgets(next);
     localStorage.setItem("mk_goal_budgets", JSON.stringify(next));
@@ -198,7 +200,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
                       onKeyDown={e => { if (e.key === "Enter") saveBudget(cat.id, inputVal); if (e.key === "Escape") setEditing(null); }}
                       placeholder="0"
                       style={{ width: 72, background: "#0d1f16", border: `1px solid ${cat.color}66`,
-                        borderRadius: 8, padding: "6px 8px", color: "#fff", fontSize: 14,
+                        borderRadius: 8, padding: "6px 8px", color: "#fff", fontSize: 16,
                         outline: "none", fontFamily: "inherit", textAlign: "right" }} />
                     <button onClick={() => saveBudget(cat.id, inputVal)} style={{
                       background: cat.color, border: "none", borderRadius: 8,
@@ -268,7 +270,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
                           onKeyDown={e => { if (e.key === "Enter") saveGoalBudget(goal.id, inputVal); if (e.key === "Escape") setEditing(null); }}
                           placeholder="0"
                           style={{ width: 72, background: "#0d1f16", border: `1px solid ${goal.color}66`,
-                            borderRadius: 8, padding: "6px 8px", color: "#fff", fontSize: 14,
+                            borderRadius: 8, padding: "6px 8px", color: "#fff", fontSize: 16,
                             outline: "none", fontFamily: "inherit", textAlign: "right" }} />
                         <button onClick={() => saveGoalBudget(goal.id, inputVal)} style={{
                           background: goal.color, border: "none", borderRadius: 8,

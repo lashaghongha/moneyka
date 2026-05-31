@@ -168,7 +168,7 @@ export default function ProfilePage({ plan, setPlan, setPage, onLogout, currency
                 {plan === "pro" ? "👑 Elite-ზე გადასვლა" : "⭐ Pro-ზე გადასვლა"}
               </p>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: "4px 0 0" }}>
-                {plan === "pro" ? "7.99 ₾/თვე · ყველა ფუნქცია" : "3.99 ₾/თვე · AI + ექსპორტი"}
+                {plan === "pro" ? "$4.99/თვე · ყველა ფუნქცია" : "$2.99/თვე · AI + ექსპორტი"}
               </p>
             </div>
             <div style={{

@@ -2,12 +2,18 @@ import { useState } from "react";
 import TxRow from "../components/TxRow";
 
 export default function TransactionsPage({ transactions, setTransactions, cur = "₾" }) {
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
+  const [filter,  setFilter]  = useState("all");   // all / income / expense
+  const [curFilt, setCurFilt] = useState("all");   // all / ₾ / $ / €
+  const [search,  setSearch]  = useState("");
+
+  // which currencies actually exist in the data
+  const usedCurs = [...new Set(transactions.map(t => t.currency || "₾"))];
+  const showCurFilter = usedCurs.length > 1;
 
   const filtered = transactions
-    .filter(t => filter === "all" || (filter === "income" ? t.amount > 0 : t.amount < 0))
-    .filter(t => !search || t.desc.toLowerCase().includes(search.toLowerCase()))
+    .filter(t => filter   === "all" || (filter  === "income" ? t.amount > 0 : t.amount < 0))
+    .filter(t => curFilt  === "all" || (t.currency || "₾") === curFilt)
+    .filter(t => !search  || t.desc?.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => b.date.localeCompare(a.date));
 
   const grouped = filtered.reduce((acc, tx) => {
@@ -25,10 +31,11 @@ export default function TransactionsPage({ transactions, setTransactions, cur = 
       <input value={search} onChange={e => setSearch(e.target.value)}
         placeholder="🔍  ძებნა..."
         style={{ width: "100%", background: "#1a2e22", border: "1px solid rgba(76,175,82,0.15)",
-          borderRadius: 14, padding: "12px 16px", color: "#fff", fontSize: 14,
+          borderRadius: 14, padding: "12px 16px", color: "#fff", fontSize: 16,
           outline: "none", marginBottom: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      {/* Type filter */}
+      <div style={{ display: "flex", gap: 8, marginBottom: showCurFilter ? 10 : 20 }}>
         {[["all", "ყველა"], ["expense", "გასავალი"], ["income", "შემოსავალი"]].map(([v, l]) => (
           <button key={v} onClick={() => setFilter(v)} style={{
             padding: "7px 14px", borderRadius: 20, border: "none", cursor: "pointer",
@@ -38,6 +45,20 @@ export default function TransactionsPage({ transactions, setTransactions, cur = 
           }}>{l}</button>
         ))}
       </div>
+
+      {/* Currency filter — only shown when multiple currencies exist */}
+      {showCurFilter && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {[["all", "🌐 ყველა"], ...usedCurs.map(c => [c, c === "₾" ? "🇬🇪 ₾" : c === "$" ? "🇺🇸 $" : "🇪🇺 €"])].map(([v, l]) => (
+            <button key={v} onClick={() => setCurFilt(v)} style={{
+              padding: "6px 13px", borderRadius: 20, border: "none", cursor: "pointer",
+              background: curFilt === v ? "rgba(255,255,255,0.18)" : "#1a2e22",
+              color: curFilt === v ? "#fff" : "rgba(255,255,255,0.45)",
+              fontWeight: curFilt === v ? 700 : 400, fontSize: 13, fontFamily: "inherit"
+            }}>{l}</button>
+          ))}
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <p style={{ color: "rgba(255,255,255,0.3)", textAlign: "center", marginTop: 40, fontSize: 14 }}>

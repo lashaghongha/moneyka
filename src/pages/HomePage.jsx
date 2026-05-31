@@ -2,16 +2,36 @@ import { CATEGORIES } from "../constants";
 import SectionHeader from "../components/SectionHeader";
 import TxRow from "../components/TxRow";
 
+const ALL_CURRENCIES = ["₾", "$", "€"];
+
+function txCur(tx) { return tx.currency || "₾"; }
+
 export default function HomePage({ transactions, goals, onAddTx, plan, onUpgrade, onNavigate, cur = "₾" }) {
-  const balance   = transactions.reduce((s, t) => s + t.amount, 0);
   const now       = new Date();
-  const thisMonth = transactions.filter(t => t.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`));
-  const income    = thisMonth.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const expense   = thisMonth.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const monthKey  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const thisMonth = transactions.filter(t => t.date.startsWith(monthKey));
   const recent    = [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   const isPremium = plan !== "free";
   const txCount   = transactions.length;
   const freeLimit = 100;
+
+  // ── Per-currency balances ──────────────────────────────────────────────────
+  const balByCur = {};
+  transactions.forEach(t => {
+    const c = txCur(t);
+    balByCur[c] = (balByCur[c] || 0) + t.amount;
+  });
+
+  // Primary balance = GEL (₾) or fallback to first available
+  const balance = balByCur["₾"] || 0;
+
+  // Secondary balances (non-₾)
+  const secondaryCurs = ALL_CURRENCIES.filter(c => c !== "₾" && balByCur[c]);
+
+  // This month income/expense — primary (₾) only for the stat cards
+  const gelMonth = thisMonth.filter(t => txCur(t) === "₾");
+  const income   = gelMonth.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const expense  = gelMonth.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
 
   return (
     <div style={{ padding: "0 0 100px" }}>
@@ -45,8 +65,27 @@ export default function HomePage({ transactions, goals, onAddTx, plan, onUpgrade
               <span style={{ fontSize: 42, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
                 {balance.toLocaleString()}
               </span>
-              <span style={{ fontSize: 24, color: isPremium ? "#A78BFA" : "#4CAF82", fontWeight: 700 }}>{cur}</span>
+              <span style={{ fontSize: 24, color: isPremium ? "#A78BFA" : "#4CAF82", fontWeight: 700 }}>₾</span>
             </div>
+            {/* Secondary currency balances */}
+            {secondaryCurs.length > 0 && (
+              <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                {secondaryCurs.map(c => (
+                  <div key={c} style={{
+                    background: "rgba(255,255,255,0.08)", borderRadius: 10,
+                    padding: "3px 10px", display: "flex", alignItems: "center", gap: 4
+                  }}>
+                    <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>
+                      {c === "$" ? "🇺🇸" : "🇪🇺"}
+                    </span>
+                    <span style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>
+                      {(balByCur[c] || 0) >= 0 ? "" : "-"}
+                      {Math.abs(balByCur[c] || 0).toLocaleString()} {c}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 4 }}>განახლდა ახლა</p>
           </div>
           <div style={{ width: 52, height: 52, borderRadius: 16,
@@ -67,7 +106,7 @@ export default function HomePage({ transactions, goals, onAddTx, plan, onUpgrade
                 <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{item.label}</span>
               </div>
               <span style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>
-                {item.val.toLocaleString()} <span style={{ color: item.col, fontSize: 13 }}>{cur}</span>
+                {item.val.toLocaleString()} <span style={{ color: item.col, fontSize: 13 }}>₾</span>
               </span>
             </div>
           ))}

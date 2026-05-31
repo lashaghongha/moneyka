@@ -51,7 +51,7 @@ export default function TxRow({ tx, cur = "₾", onDelete, onEdit }) {
         </p>
       </div>
       <span style={{ color: isExp ? "#E05470" : "#4CAF82", fontWeight: 700, fontSize: 15 }}>
-        {isExp ? "-" : "+"}{Math.abs(tx.amount).toLocaleString()} {cur}
+        {isExp ? "-" : "+"}{Math.abs(tx.amount).toLocaleString()} {tx.currency || cur}
       </span>
       {/* action buttons */}
       {(onDelete || onEdit) && (

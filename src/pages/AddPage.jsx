@@ -2,22 +2,28 @@ import { useState } from "react";
 import { CATEGORIES, INCOME_CATEGORIES } from "../constants";
 import PremiumLock from "../components/PremiumLock";
 
+const CURRENCIES = [
+  { sym: "₾", label: "ლარი",    flag: "🇬🇪" },
+  { sym: "$", label: "დოლარი",  flag: "🇺🇸" },
+  { sym: "€", label: "ევრო",    flag: "🇪🇺" },
+];
+
 export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur = "₾" }) {
-  const [type, setType]         = useState("expense");
-  const [amount, setAmount]     = useState("");
-  const [cat, setCat]           = useState(defaultCat);
-  const [desc, setDesc]         = useState("");
-  const [recurring, setRecurring] = useState(false);
-  const [recFreq, setRecFreq]   = useState("monthly");
+  const [type,     setType]     = useState("expense");
+  const [amount,   setAmount]   = useState("");
+  const [cat,      setCat]      = useState(defaultCat);
+  const [desc,     setDesc]     = useState("");
+  const [txCur,    setTxCur]    = useState(cur);   // per-transaction currency
+  const [recurring,  setRecurring]  = useState(false);
+  const [recFreq,    setRecFreq]    = useState("monthly");
   const isPremium = plan !== "free";
 
-  // when switching type → reset to default category of that type
   function handleTypeSwitch(newType) {
     setType(newType);
     setCat(newType === "expense" ? "food" : "salary");
   }
 
-  const activeCats = type === "expense" ? CATEGORIES : INCOME_CATEGORIES;
+  const activeCats  = type === "expense" ? CATEGORIES : INCOME_CATEGORIES;
   const accentColor = type === "expense" ? "#E05470" : "#4CAF82";
 
   function handleSubmit() {
@@ -25,15 +31,16 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
     const now = new Date();
     const allCats = [...CATEGORIES, ...INCOME_CATEGORIES];
     onAdd({
-      id: Date.now(),
-      category: cat,
-      desc: desc || allCats.find(c => c.id === cat)?.label,
-      amount: type === "expense" ? -Math.abs(+amount) : +Math.abs(+amount),
-      date: now.toISOString().split("T")[0],
-      time: now.toTimeString().slice(0, 5),
+      id:        Date.now(),
+      category:  cat,
+      desc:      desc || allCats.find(c => c.id === cat)?.label,
+      amount:    type === "expense" ? -Math.abs(+amount) : +Math.abs(+amount),
+      date:      now.toISOString().split("T")[0],
+      time:      now.toTimeString().slice(0, 5),
       type,
+      currency:  txCur,
       recurring: isPremium && recurring,
-      recFreq
+      recFreq,
     });
     onClose();
   }
@@ -42,7 +49,7 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
     <div style={{ padding: "20px 16px 100px" }}>
 
       {/* Type toggle */}
-      <div style={{ display: "flex", background: "#1a2e22", borderRadius: 16, padding: 4, marginBottom: 24 }}>
+      <div style={{ display: "flex", background: "#1a2e22", borderRadius: 16, padding: 4, marginBottom: 20 }}>
         {[["expense", "გასავალი", "#E05470"], ["income", "შემოსავალი", "#4CAF82"]].map(([v, l, c]) => (
           <button key={v} onClick={() => handleTypeSwitch(v)} style={{
             flex: 1, padding: "11px", borderRadius: 12, border: "none", cursor: "pointer",
@@ -56,21 +63,42 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
 
       {/* Amount display */}
       <div style={{
-        background: "#1a2e22", borderRadius: 20, padding: "24px",
-        textAlign: "center", marginBottom: 20,
+        background: "#1a2e22", borderRadius: 20, padding: "20px 24px 16px",
+        textAlign: "center", marginBottom: 14,
         border: `1px solid ${accentColor}22`
       }}>
-        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 8, margin: "0 0 8px" }}>თანხა</p>
+        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, margin: "0 0 6px" }}>თანხა</p>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
           <span style={{ fontSize: 48, fontWeight: 800, color: accentColor }}>
             {type === "expense" ? "-" : "+"}{amount || "0"}
           </span>
-          <span style={{ fontSize: 28, color: "rgba(255,255,255,0.5)" }}>{cur}</span>
+          <span style={{ fontSize: 28, color: "rgba(255,255,255,0.5)" }}>{txCur}</span>
+        </div>
+
+        {/* Currency selector — inside the amount card */}
+        <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "center" }}>
+          {CURRENCIES.map(c => {
+            const active = txCur === c.sym;
+            return (
+              <button key={c.sym} onClick={() => setTxCur(c.sym)} style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "5px 14px", borderRadius: 20,
+                border: active ? `1.5px solid ${accentColor}` : "1px solid rgba(255,255,255,0.12)",
+                background: active ? accentColor + "22" : "rgba(255,255,255,0.04)",
+                color: active ? accentColor : "rgba(255,255,255,0.4)",
+                fontSize: 13, fontWeight: active ? 700 : 400,
+                cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s"
+              }}>
+                <span style={{ fontSize: 14 }}>{c.flag}</span>
+                <span>{c.sym}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Keypad */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
         {["1","2","3","4","5","6","7","8","9",".","0","⌫"].map(k => (
           <button key={k} onClick={() => {
             if (k === "⌫") setAmount(a => a.slice(0, -1));
@@ -93,7 +121,7 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
           width: "100%", background: "#1a2e22",
           border: "1px solid rgba(76,175,82,0.15)",
           borderRadius: 14, padding: "14px 16px", color: "#fff",
-          fontSize: 15, outline: "none", marginBottom: 14,
+          fontSize: 16, outline: "none", marginBottom: 14,
           boxSizing: "border-box", fontFamily: "inherit"
         }}
       />

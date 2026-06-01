@@ -47,8 +47,7 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
     if (!amount || isNaN(+amount) || +amount <= 0) return;
     const now = new Date();
     const allCats = [...CATEGORIES, ...INCOME_CATEGORIES];
-    // If user picked today use real time, otherwise midnight-ish
-    const time = isToday ? now.toTimeString().slice(0, 5) : "00:00";
+    const time = now.toTimeString().slice(0, 5);
     onAdd({
       id:        Date.now(),
       category:  cat,

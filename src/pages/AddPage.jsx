@@ -1,21 +1,38 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { CATEGORIES, INCOME_CATEGORIES } from "../constants";
 import PremiumLock from "../components/PremiumLock";
 
 const CURRENCIES = [
-  { sym: "₾", label: "ლარი",    flag: "🇬🇪" },
-  { sym: "$", label: "დოლარი",  flag: "🇺🇸" },
-  { sym: "€", label: "ევრო",    flag: "🇪🇺" },
+  { sym: "₾", label: "ლარი",   flag: "🇬🇪" },
+  { sym: "$", label: "დოლარი", flag: "🇺🇸" },
+  { sym: "€", label: "ევრო",   flag: "🇪🇺" },
 ];
 
+const MONTHS_SHORT = ["იან","თებ","მარ","აპრ","მაი","ივნ","ივლ","აგვ","სექ","ოქტ","ნოე","დეკ"];
+
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function formatDateLabel(dateStr) {
+  const today = todayStr();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  if (dateStr === today)     return "დღეს";
+  if (dateStr === yesterday) return "გუშინ";
+  const d = new Date(dateStr + "T12:00:00");
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+}
+
 export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur = "₾" }) {
-  const [type,     setType]     = useState("expense");
-  const [amount,   setAmount]   = useState("");
-  const [cat,      setCat]      = useState(defaultCat);
-  const [desc,     setDesc]     = useState("");
-  const [txCur,    setTxCur]    = useState(cur);   // per-transaction currency
-  const [recurring,  setRecurring]  = useState(false);
-  const [recFreq,    setRecFreq]    = useState("monthly");
+  const [type,      setType]      = useState("expense");
+  const [amount,    setAmount]    = useState("");
+  const [cat,       setCat]       = useState(defaultCat);
+  const [desc,      setDesc]      = useState("");
+  const [txCur,     setTxCur]     = useState(cur);
+  const [txDate,    setTxDate]    = useState(todayStr());
+  const [recurring, setRecurring] = useState(false);
+  const [recFreq,   setRecFreq]   = useState("monthly");
+  const dateInputRef = useRef(null);
   const isPremium = plan !== "free";
 
   function handleTypeSwitch(newType) {
@@ -25,18 +42,21 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
 
   const activeCats  = type === "expense" ? CATEGORIES : INCOME_CATEGORIES;
   const accentColor = type === "expense" ? "#E05470" : "#4CAF82";
+  const isToday     = txDate === todayStr();
 
   function handleSubmit() {
     if (!amount || isNaN(+amount) || +amount <= 0) return;
     const now = new Date();
     const allCats = [...CATEGORIES, ...INCOME_CATEGORIES];
+    // If user picked today use real time, otherwise midnight-ish
+    const time = isToday ? now.toTimeString().slice(0, 5) : "00:00";
     onAdd({
       id:        Date.now(),
       category:  cat,
       desc:      desc || allCats.find(c => c.id === cat)?.label,
       amount:    type === "expense" ? -Math.abs(+amount) : +Math.abs(+amount),
-      date:      now.toISOString().split("T")[0],
-      time:      now.toTimeString().slice(0, 5),
+      date:      txDate,
+      time,
       type,
       currency:  txCur,
       recurring: isPremium && recurring,
@@ -67,6 +87,38 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
         textAlign: "center", marginBottom: 14,
         border: `1px solid ${accentColor}22`
       }}>
+        {/* Date pill — tap to change */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+          <button
+            onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: isToday ? "rgba(255,255,255,0.06)" : `${accentColor}22`,
+              border: `1px solid ${isToday ? "rgba(255,255,255,0.12)" : accentColor + "55"}`,
+              borderRadius: 20, padding: "5px 14px",
+              color: isToday ? "rgba(255,255,255,0.5)" : accentColor,
+              fontSize: 13, fontWeight: isToday ? 400 : 600,
+              cursor: "pointer", fontFamily: "inherit"
+            }}
+          >
+            <span>📅</span>
+            <span>{formatDateLabel(txDate)}</span>
+            <span style={{ fontSize: 10, opacity: 0.6 }}>▼</span>
+          </button>
+          {/* Hidden native date input */}
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={txDate}
+            max={todayStr()}
+            onChange={e => e.target.value && setTxDate(e.target.value)}
+            style={{
+              position: "absolute", opacity: 0, pointerEvents: "none",
+              width: 1, height: 1
+            }}
+          />
+        </div>
+
         <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, margin: "0 0 6px" }}>თანხა</p>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
           <span style={{ fontSize: 48, fontWeight: 800, color: accentColor }}>
@@ -75,7 +127,7 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
           <span style={{ fontSize: 28, color: "rgba(255,255,255,0.5)" }}>{txCur}</span>
         </div>
 
-        {/* Currency selector — inside the amount card */}
+        {/* Currency selector */}
         <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "center" }}>
           {CURRENCIES.map(c => {
             const active = txCur === c.sym;

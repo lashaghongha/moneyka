@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { CATEGORIES, INCOME_CATEGORIES } from "../constants";
 import PremiumLock from "../components/PremiumLock";
 
@@ -32,7 +32,6 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
   const [txDate,    setTxDate]    = useState(todayStr());
   const [recurring, setRecurring] = useState(false);
   const [recFreq,   setRecFreq]   = useState("monthly");
-  const dateInputRef = useRef(null);
   const isPremium = plan !== "free";
 
   function handleTypeSwitch(newType) {
@@ -89,34 +88,34 @@ export default function AddPage({ onAdd, defaultCat = "food", onClose, plan, cur
       }}>
         {/* Date pill — tap to change */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-          <button
-            onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
-            style={{
+          <div style={{ position: "relative", display: "inline-flex" }}>
+            {/* Visible label */}
+            <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               background: isToday ? "rgba(255,255,255,0.06)" : `${accentColor}22`,
               border: `1px solid ${isToday ? "rgba(255,255,255,0.12)" : accentColor + "55"}`,
               borderRadius: 20, padding: "5px 14px",
               color: isToday ? "rgba(255,255,255,0.5)" : accentColor,
               fontSize: 13, fontWeight: isToday ? 400 : 600,
-              cursor: "pointer", fontFamily: "inherit"
-            }}
-          >
-            <span>📅</span>
-            <span>{formatDateLabel(txDate)}</span>
-            <span style={{ fontSize: 10, opacity: 0.6 }}>▼</span>
-          </button>
-          {/* Hidden native date input */}
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={txDate}
-            max={todayStr()}
-            onChange={e => e.target.value && setTxDate(e.target.value)}
-            style={{
-              position: "absolute", opacity: 0, pointerEvents: "none",
-              width: 1, height: 1
-            }}
-          />
+              fontFamily: "inherit", userSelect: "none"
+            }}>
+              <span>📅</span>
+              <span>{formatDateLabel(txDate)}</span>
+              <span style={{ fontSize: 10, opacity: 0.6 }}>▼</span>
+            </div>
+            {/* Invisible native date input overlaid exactly on top */}
+            <input
+              type="date"
+              value={txDate}
+              max={todayStr()}
+              onChange={e => e.target.value && setTxDate(e.target.value)}
+              style={{
+                position: "absolute", inset: 0,
+                opacity: 0, width: "100%", height: "100%",
+                cursor: "pointer", fontSize: 16
+              }}
+            />
+          </div>
         </div>
 
         <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, margin: "0 0 6px" }}>თანხა</p>

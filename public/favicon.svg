@@ -4,21 +4,25 @@
       <stop offset="0%" stop-color="#0f2a1c"/>
       <stop offset="100%" stop-color="#050d08"/>
     </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="54%" r="50%">
-      <stop offset="0%"   stop-color="#4CAF82" stop-opacity="0.5"/>
+    <radialGradient id="glow" cx="50%" cy="75%" r="55%">
+      <stop offset="0%"   stop-color="#4CAF82" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#4CAF82" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="sym" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#A8FFD8"/>
-      <stop offset="100%" stop-color="#2d8f5a"/>
+      <stop offset="0%"   stop-color="#EAFFF5"/>
+      <stop offset="40%"  stop-color="#6DFFB8"/>
+      <stop offset="100%" stop-color="#26a05e"/>
     </linearGradient>
-    <filter id="s">
-      <feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#4CAF82" flood-opacity="0.7"/>
+    <filter id="bloom">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur"/>
+      <feFlood flood-color="#4CAF82" flood-opacity="0.6" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <ellipse cx="32" cy="34" rx="26" ry="24" fill="url(#glow)"/>
+  <ellipse cx="32" cy="48" rx="28" ry="20" fill="url(#glow)"/>
   <text x="32" y="44" font-size="38" text-anchor="middle"
-        fill="url(#sym)" filter="url(#s)"
+        fill="url(#sym)" filter="url(#bloom)"
         font-family="Georgia,serif" font-weight="bold">₾</text>
 </svg>

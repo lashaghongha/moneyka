@@ -18,7 +18,7 @@ const PRESETS = {
 
 const PERIODS = [
   { id: "week",      label: "კვირა",    days: 7  },
-  { id: "halfmonth", label: "ნახ.თვე",  days: 15 },
+  { id: "halfmonth", label: "2 კვირა",  days: 14 },
   { id: "month",     label: "თვე",      days: null }, // calendar month
 ];
 

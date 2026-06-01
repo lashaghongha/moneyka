@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { CATEGORIES, INCOME_CATEGORIES } from "../constants";
 import PremiumLock from "../components/PremiumLock";
+import { storage } from "../storage";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -34,10 +35,12 @@ function getPeriodTx(transactions, period) {
   }
 }
 
-export default function ExportPage({ transactions, isPremium, onUpgrade, cur = "₾" }) {
-  const [exported, setExported] = useState(null);
-  const [period,   setPeriod]   = useState(0);
-  const [loading,  setLoading]  = useState(false);
+export default function ExportPage({ transactions, setTransactions, isPremium, onUpgrade, cur = "₾" }) {
+  const [exported,     setExported]     = useState(null);
+  const [period,       setPeriod]       = useState(0);
+  const [loading,      setLoading]      = useState(false);
+  const [restoreMsg,   setRestoreMsg]   = useState(null); // { ok, text }
+  const fileInputRef = useRef(null);
 
   const periods = ["ეს თვე", "გასული თვე", "ბოლო 3 თვე", "ბოლო 6 თვე", "ეს წელი", "ყველა"];
 
@@ -117,6 +120,54 @@ export default function ExportPage({ transactions, isPremium, onUpgrade, cur = "
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  // ── Backup / Restore ──────────────────────────────────────────────────────
+  function doBackup() {
+    const backup = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      transactions: storage.getTransactions(),
+      goals:        storage.getGoals(),
+      subs:         storage.getSubs(),
+      budgets:      storage.getBudgets(),
+      goalBudgets:  (() => { try { return JSON.parse(localStorage.getItem("mk_goal_budgets") || "{}"); } catch { return {}; } })(),
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const date = new Date().toISOString().split("T")[0];
+    triggerDownload(blob, `moneyka-backup-${date}.json`);
+    setExported("Backup JSON");
+  }
+
+  function handleRestoreFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.version || !Array.isArray(data.transactions)) {
+          setRestoreMsg({ ok: false, text: "ფაილი არასწორი ფორმატისაა" });
+          return;
+        }
+        // Restore all keys
+        storage.saveTransactions(data.transactions);
+        if (Array.isArray(data.goals))       storage.saveGoals(data.goals);
+        if (Array.isArray(data.subs))        storage.saveSubs(data.subs);
+        if (data.budgets)                    storage.saveBudgets(data.budgets);
+        if (data.goalBudgets)                localStorage.setItem("mk_goal_budgets", JSON.stringify(data.goalBudgets));
+
+        // Notify App to reload transactions
+        if (setTransactions) setTransactions(data.transactions);
+
+        const txCount = data.transactions.length;
+        setRestoreMsg({ ok: true, text: `✅ აღდგა ${txCount} ტრანზაქცია + მიზნები + ბიუჯეტი. გადატვირთე გვერდი.` });
+      } catch {
+        setRestoreMsg({ ok: false, text: "ფაილი დაზიანებულია ან შეუთავსებელია" });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
   if (!isPremium) return (
     <div style={{ padding: "20px 16px 100px" }}>
       <div style={{ position: "relative", borderRadius: 20, overflow: "hidden" }}>
@@ -186,10 +237,84 @@ export default function ExportPage({ transactions, isPremium, onUpgrade, cur = "
 
       {exported && (
         <div style={{ background: "rgba(76,175,82,0.12)", borderRadius: 16, padding: "14px 16px",
-          border: "1px solid rgba(76,175,82,0.25)", textAlign: "center" }}>
+          border: "1px solid rgba(76,175,82,0.25)", textAlign: "center", marginBottom: 16 }}>
           <p style={{ color: "#4CAF82", fontWeight: 700 }}>✅ {exported} წარმატებით ჩამოიტვირთა!</p>
         </div>
       )}
+
+      {/* ── Backup / Restore section ────────────────────────────────────── */}
+      <div style={{ marginTop: 8, background: "rgba(255,255,255,0.03)", borderRadius: 20,
+        border: "1px solid rgba(255,255,255,0.08)", padding: "16px" }}>
+
+        <p style={{ color: "rgba(255,255,255,0.7)", fontWeight: 700, fontSize: 14, margin: "0 0 4px" }}>
+          🔒 მონაცემების დაცვა
+        </p>
+        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, margin: "0 0 14px", lineHeight: 1.5 }}>
+          მონაცემები ამ მოწყობილობაზეა. ბექაფის ჩამოტვირთვა გირჩევია browser-ის გასუფთავებამდე
+          ან ახალ მოწყობილობაზე გადასვლამდე.
+        </p>
+
+        {/* Backup button */}
+        <button onClick={doBackup} style={{
+          width: "100%", background: "#1a2e22",
+          border: "1px solid rgba(76,175,82,0.3)", borderRadius: 14,
+          padding: "14px 16px", display: "flex", alignItems: "center", gap: 12,
+          cursor: "pointer", marginBottom: 10, textAlign: "left"
+        }}>
+          <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(76,175,82,0.18)",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+            💾
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ color: "#fff", fontWeight: 600, fontSize: 14, margin: 0 }}>ბექაფის შენახვა</p>
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, margin: 0 }}>
+              ყველა მონაცემი → moneyka-backup.json
+            </p>
+          </div>
+          <span style={{ color: "#4CAF82", fontSize: 18 }}>↓</span>
+        </button>
+
+        {/* Restore button */}
+        <div style={{ position: "relative" }}>
+          <button onClick={() => fileInputRef.current?.click()} style={{
+            width: "100%", background: "#1a2e22",
+            border: "1px solid rgba(167,139,250,0.25)", borderRadius: 14,
+            padding: "14px 16px", display: "flex", alignItems: "center", gap: 12,
+            cursor: "pointer", textAlign: "left"
+          }}>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(167,139,250,0.15)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+              📥
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: "#fff", fontWeight: 600, fontSize: 14, margin: 0 }}>ბექაფის აღდგენა</p>
+              <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, margin: 0 }}>
+                .json ფაილიდან მონაცემების ჩატვირთვა
+              </p>
+            </div>
+            <span style={{ color: "#A78BFA", fontSize: 18 }}>↑</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleRestoreFile}
+            style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", fontSize: 16 }}
+          />
+        </div>
+
+        {restoreMsg && (
+          <div style={{
+            marginTop: 12, borderRadius: 12, padding: "12px 14px",
+            background: restoreMsg.ok ? "rgba(76,175,82,0.12)" : "rgba(224,84,112,0.12)",
+            border: `1px solid ${restoreMsg.ok ? "rgba(76,175,82,0.3)" : "rgba(224,84,112,0.3)"}`,
+          }}>
+            <p style={{ color: restoreMsg.ok ? "#4CAF82" : "#E05470", fontSize: 13, margin: 0 }}>
+              {restoreMsg.text}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

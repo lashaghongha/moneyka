@@ -211,17 +211,17 @@ export default function App() {
           : plan === "pro"
           ? "linear-gradient(135deg,#1a0d3a,#0d0d2e)"
           : "linear-gradient(135deg,#1a3a2a,#0d2419)",
-        padding: "env(safe-area-inset-top, 14px) 20px 12px",
-        paddingTop: "max(env(safe-area-inset-top, 0px) + 14px, 14px)",
+        padding: "env(safe-area-inset-top, 18px) 20px 16px",
+        paddingTop: "max(env(safe-area-inset-top, 0px) + 18px, 18px)",
         display: "flex", justifyContent: "center", alignItems: "center",
         borderBottom: `2px solid ${planColor}44`,
-        minHeight: 48
+        minHeight: 64
       }}>
-        <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>
+        <span style={{ color: "#fff", fontSize: 19, fontWeight: 700, letterSpacing: 0.3 }}>
           {PAGE_TITLES[currentPage]}
         </span>
         {isPremium && (
-          <span style={{ position: "absolute", right: 20, fontSize: 16 }}>
+          <span style={{ position: "absolute", right: 20, fontSize: 20 }}>
             {plan === "elite" ? "👑" : "⭐"}
           </span>
         )}
@@ -255,7 +255,7 @@ export default function App() {
         ) : page === "recurring" ? (
           <RecurringPage transactions={transactions} isPremium={isPremium} onUpgrade={() => setPage("premium")} cur={cur} />
         ) : page === "export" ? (
-          <ExportPage transactions={transactions} isPremium={isPremium} onUpgrade={() => setPage("premium")} cur={cur} />
+          <ExportPage transactions={transactions} setTransactions={setTransactions} isPremium={isPremium} onUpgrade={() => setPage("premium")} cur={cur} />
         ) : page === "habits" ? (
           <HabitsPage transactions={transactions} isPremium={isPremium} isElite={isElite} onUpgrade={() => setPage("premium")} cur={cur} />
         ) : page === "subscriptions" ? (

@@ -114,8 +114,10 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
     baseSrc === "income"  ? monthIncome :
     parseFloat(customAmt) || 0;
 
-  // period-scaled base — ეს გამოიყენება display-სა და unallocated-ისთვის
-  const scaledBase = planningBase / periodDiv;
+  // period-scaled base — balance ყოველთვის სრულია, income/custom კი period-ზე იყოფა
+  const scaledBase = baseSrc === "balance"
+    ? planningBase
+    : planningBase / periodDiv;
 
   function switchBase(src) {
     setBaseSrc(src);

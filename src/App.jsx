@@ -136,6 +136,96 @@ export default function App() {
     });
   }, [loggedIn]);
 
+  // განმეორებადი ტრანზაქციების ავტო-გამეორება (AddPage-დან recurring:true)
+  useEffect(() => {
+    if (!loggedIn) return;
+    const today = new Date();
+
+    const recurringTxs = transactions.filter(t => t.recurring);
+    if (recurringTxs.length === 0) return;
+
+    // ყოველი უნიკალური განმეორებადი პატერნის ბოლო ჩანაწერი
+    const patterns = new Map();
+    recurringTxs.forEach(t => {
+      const key = `${t.desc}__${Math.sign(t.amount)}`;
+      const cur = patterns.get(key);
+      if (!cur || t.date > cur.date) patterns.set(key, t);
+    });
+
+    const newTxs = [];
+
+    patterns.forEach(lastTx => {
+      const freq = lastTx.recFreq || "monthly";
+
+      // შემდეგი თარიღის გამოთვლა (overflow-safe)
+      function advance(d) {
+        const n = new Date(d);
+        if (freq === "daily") {
+          n.setDate(n.getDate() + 1);
+        } else if (freq === "weekly") {
+          n.setDate(n.getDate() + 7);
+        } else if (freq === "monthly") {
+          const origDay = n.getDate();
+          n.setDate(1);
+          n.setMonth(n.getMonth() + 1);
+          const maxDay = new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate();
+          n.setDate(Math.min(origDay, maxDay));
+        } else if (freq === "yearly") {
+          n.setFullYear(n.getFullYear() + 1);
+        }
+        return n;
+      }
+
+      // პერიოდის გასაღები — monthly/yearly: YYYY-MM, daily/weekly: YYYY-MM-DD
+      function periodOf(d) {
+        if (freq === "monthly") return d.toISOString().slice(0, 7);
+        if (freq === "yearly")  return String(d.getFullYear());
+        return d.toISOString().slice(0, 10);
+      }
+
+      // ამ პატერნის უკვე არსებული პერიოდები
+      const covered = new Set(
+        recurringTxs
+          .filter(t => t.desc === lastTx.desc && Math.sign(t.amount) === Math.sign(lastTx.amount))
+          .map(t => periodOf(new Date(t.date + "T12:00:00")))
+      );
+
+      let due = advance(new Date(lastTx.date + "T12:00:00"));
+      let guard = 0; // max 60 iteration — infinite loop-ის თავიდან ასაცილებლად
+
+      while (due <= today && guard++ < 60) {
+        const pk = periodOf(due);
+        if (!covered.has(pk)) {
+          const dateStr = due.toISOString().split("T")[0];
+          const txId    = `rec_${lastTx.id}_${dateStr}`;
+          newTxs.push({
+            id:        txId,
+            category:  lastTx.category,
+            desc:      lastTx.desc,
+            amount:    lastTx.amount,
+            date:      dateStr,
+            time:      lastTx.time || "09:00",
+            type:      lastTx.amount > 0 ? "income" : "expense",
+            currency:  lastTx.currency || "₾",
+            recurring: true,
+            recFreq:   freq,
+          });
+          covered.add(pk);
+        }
+        due = advance(due);
+      }
+    });
+
+    if (newTxs.length === 0) return;
+
+    setTransactions(prev => {
+      const existingIds = new Set(prev.map(t => String(t.id)));
+      const fresh = newTxs.filter(t => !existingIds.has(t.id));
+      if (fresh.length === 0) return prev;
+      return [...fresh, ...prev];
+    });
+  }, [loggedIn]);
+
   // Notification checks on login
   useEffect(() => {
     if (!loggedIn) return;

@@ -22,6 +22,10 @@ const PERIODS = [
   { id: "month",     label: "თვე",      days: null }, // calendar month
 ];
 
+// სკალირების კოეფიციენტი — budgets ინახება "თვიურ" ეკვივალენტში
+// week × 1  → month: ÷ 4  |  halfmonth: ÷ 2  |  month: ÷ 1
+const PERIOD_DIVISOR = { week: 4, halfmonth: 2, month: 1 };
+
 function getPersistedBase() {
   try { return JSON.parse(localStorage.getItem("mk_budget_base") || "{}"); }
   catch { return {}; }
@@ -95,6 +99,9 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
   });
   const totalSpent = Object.values(spent).reduce((s, v) => s + v, 0);
 
+  // ── Period divisor ─────────────────────────────────────────────────────────
+  const periodDiv = PERIOD_DIVISOR[period] || 1;
+
   // ── Budget base ────────────────────────────────────────────────────────────
   const accountBalance = transactions.reduce((s, t) => s + t.amount, 0);
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -106,6 +113,9 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
     baseSrc === "balance" ? Math.max(accountBalance, 0) :
     baseSrc === "income"  ? monthIncome :
     parseFloat(customAmt) || 0;
+
+  // period-scaled base — ეს გამოიყენება display-სა და unallocated-ისთვის
+  const scaledBase = planningBase / periodDiv;
 
   function switchBase(src) {
     setBaseSrc(src);
@@ -119,14 +129,17 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
     savePersistedBase({ src: "custom", custom: String(v) });
   }
 
-  const totalBudget   = Object.values(budgets).reduce((s, v) => s + (parseFloat(v) || 0), 0);
-  const totalGoalB    = Object.values(goalBudgets).reduce((s, v) => s + (parseFloat(v) || 0), 0);
-  const unallocated   = planningBase - totalBudget - totalGoalB;
+  // ბიუჯეტი ინახება "თვიური" ეკვივალენტით → display-ზე ÷ periodDiv
+  const totalBudget   = Object.values(budgets).reduce((s, v) => s + (parseFloat(v) || 0), 0) / periodDiv;
+  const totalGoalB    = Object.values(goalBudgets).reduce((s, v) => s + (parseFloat(v) || 0), 0) / periodDiv;
+  const unallocated   = scaledBase - totalBudget - totalGoalB;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function saveBudget(catId, val) {
     document.activeElement?.blur();
-    const next = { ...budgets, [catId]: parseFloat(val) || 0 };
+    // მომხმარებელი შეჰყავს period-ის ეკვივალენტი → გარდავქმნით "თვიურ"-ში შესანახად
+    const monthly = (parseFloat(val) || 0) * periodDiv;
+    const next = { ...budgets, [catId]: monthly };
     setBudgets(next); storage.saveBudgets(next);
     setEditing(null); setInputVal("");
   }
@@ -142,6 +155,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
     const pct  = PRESETS[name];
     const next = {};
     Object.entries(pct).forEach(([id, p]) => {
+      // Preset ყოველთვიურ ბაზაზე — ინახება "თვიური"-ად
       next[id] = Math.round(planningBase * p / 100);
     });
     setBudgets(next); storage.saveBudgets(next);
@@ -214,7 +228,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
               cursor: baseSrc === "custom" ? "pointer" : "default"
             }}
           >
-            {planningBase > 0 ? planningBase.toLocaleString() + cur : "—"}
+            {scaledBase > 0 ? scaledBase.toLocaleString(undefined, { maximumFractionDigits: 0 }) + cur : "—"}
             {baseSrc === "custom" && <span style={{ fontSize: 14, marginLeft: 6, opacity: 0.5 }}>✏️</span>}
           </p>
         )}
@@ -222,9 +236,9 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
           {[
-            { label: "დაგეგმილი",  val: totalBudget,                          color: "#A78BFA" },
-            { label: "დახარჯული",  val: totalSpent,                           color: "#E05470" },
-            { label: "თავისუფ.",   val: Math.max(planningBase - totalSpent, 0), color: "#4CAF82" },
+            { label: "დაგეგმილი",  val: totalBudget,                         color: "#A78BFA" },
+            { label: "დახარჯული",  val: totalSpent,                          color: "#E05470" },
+            { label: "თავისუფ.",   val: Math.max(scaledBase - totalSpent, 0), color: "#4CAF82" },
           ].map(({ label, val, color }) => (
             <div key={label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "10px" }}>
               <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, margin: "0 0 2px" }}>{label}</p>
@@ -264,7 +278,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
         }}>გასუფთ.</button>
       </div>
 
-      {!planningBase && (
+      {!scaledBase && (
         <div style={{ background: "rgba(245,158,11,0.1)", borderRadius: 14, padding: "12px 16px",
           marginBottom: 12, border: "1px solid rgba(245,158,11,0.2)" }}>
           <p style={{ color: "#F59E0B", fontSize: 13, margin: 0 }}>
@@ -284,7 +298,8 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {CATEGORIES.map(cat => {
-          const budget   = parseFloat(budgets[cat.id]) || 0;
+          // localStorage-ში "თვიური" ➜ display-ზე period-scaled
+          const budget   = (parseFloat(budgets[cat.id]) || 0) / periodDiv;
           const spentAmt = spent[cat.id] || 0;
           const pct      = budget > 0 ? Math.min((spentAmt / budget) * 100, 100) : 0;
           const over     = budget > 0 && spentAmt > budget;
@@ -315,7 +330,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
                 </div>
 
                 {!isEd ? (
-                  <button onClick={() => { setEditing(editKey); setInputVal(budget > 0 ? String(budget) : ""); }} style={{
+                  <button onClick={() => { setEditing(editKey); setInputVal(budget > 0 ? String(Math.round(budget)) : ""); }} style={{
                     background: budget > 0 ? cat.color + "22" : "rgba(255,255,255,0.07)",
                     border: `1px solid ${budget > 0 ? cat.color + "44" : "rgba(255,255,255,0.1)"}`,
                     borderRadius: 10, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
@@ -418,7 +433,7 @@ export default function BudgetPage({ transactions, goals = [], isPremium, onUpgr
       )}
 
       {/* ── Unallocated ──────────────────────────────────────────────────── */}
-      {planningBase > 0 && (
+      {scaledBase > 0 && (
         <div style={{ marginTop: 16, background: "rgba(167,139,250,0.08)", borderRadius: 16, padding: "14px 16px", border: "1px solid rgba(167,139,250,0.15)" }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, margin: 0 }}>📦 გაუნაწილებელი</p>

@@ -3,12 +3,14 @@ import SectionHeader from "../components/SectionHeader";
 import TxRow from "../components/TxRow";
 
 const ALL_CURRENCIES = ["₾", "$", "€"];
+const GEO_MONTHS_SHORT = ["იანვ","თებ","მარ","აპრ","მაი","ივნ","ივლ","აგვ","სექ","ოქტ","ნოე","დეკ"];
 
 function txCur(tx) { return tx.currency || "₾"; }
 
 export default function HomePage({ transactions, goals, onAddTx, plan, onUpgrade, onNavigate, cur = "₾" }) {
   const now       = new Date();
   const monthKey  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const monthLabel = GEO_MONTHS_SHORT[now.getMonth()];
   const thisMonth = transactions.filter(t => t.date.startsWith(monthKey));
   const recent    = [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   const isPremium = plan !== "free";
@@ -101,9 +103,15 @@ export default function HomePage({ transactions, goals, onAddTx, plan, onUpgrade
             { label: "გასავალი",   val: Math.abs(expense),   icon: "↓", col: "#E05470" },
           ].map(item => (
             <div key={item.label} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 14, padding: "12px 14px", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: item.col, fontWeight: 700 }}>{item.icon}</span>
-                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{item.label}</span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: item.col, fontWeight: 700 }}>{item.icon}</span>
+                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{item.label}</span>
+                </div>
+                <span style={{
+                  background: "rgba(255,255,255,0.08)", borderRadius: 6,
+                  color: "rgba(255,255,255,0.35)", fontSize: 10, padding: "1px 6px", fontWeight: 600
+                }}>{monthLabel}</span>
               </div>
               <span style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>
                 {item.val.toLocaleString()} <span style={{ color: item.col, fontSize: 13 }}>₾</span>

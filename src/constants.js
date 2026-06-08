@@ -8,6 +8,7 @@ export const CATEGORIES = [
   { id: "clothes",       label: "ტანსაცმელი",   icon: "👕", color: "#9B59B6" },
   { id: "utilities",     label: "კომუნალური",   icon: "💡", color: "#F39C12" },
   { id: "education",     label: "განათლება",     icon: "📚", color: "#1ABC9C" },
+  { id: "selfcare",      label: "თავის მოვლა",   icon: "💅", color: "#EC4899" },
   { id: "other",         label: "სხვა",           icon: "📦", color: "#95A5A6" },
 ];
 

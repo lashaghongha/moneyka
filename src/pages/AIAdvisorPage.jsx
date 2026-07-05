@@ -18,13 +18,24 @@ export default function AIAdvisorPage({ transactions, isPremium, onUpgrade }) {
   const totalSpend = byCat.reduce((s, c) => s + c.total, 0);
   const income     = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
 
+  function isApiError(text) {
+    return text && (
+      text.startsWith("Groq შეცდომა:") ||
+      text.startsWith("კავშირის შეცდომა:") ||
+      text.includes("API key") ||
+      text.includes("არ არის კონფიგურირებული")
+    );
+  }
+
+  const AI_DOWN_MSG = "⚠️ AI სერვისი დროებით მიუწვდომელია. გთხოვ სცადე მოგვიანებით.";
+
   async function getAdvice() {
     setChatLoading2(true);
     try {
       const data = await api.getAdvice({ byCat, totalSpend, income });
-      setAdvice(data.text);
+      setAdvice(isApiError(data.text) ? AI_DOWN_MSG : data.text);
     } catch {
-      setAdvice("კავშირის შეცდომა. სცადე მოგვიანებით.");
+      setAdvice(AI_DOWN_MSG);
     }
     setChatLoading2(false);
   }
@@ -39,9 +50,10 @@ export default function AIAdvisorPage({ transactions, isPremium, onUpgrade }) {
     try {
       const messages = newChat.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
       const data = await api.sendChat({ messages, byCat, totalSpend, income });
-      setChat(c => [...c, { role: "assistant", text: data.text }]);
+      const reply = isApiError(data.text) ? AI_DOWN_MSG : data.text;
+      setChat(c => [...c, { role: "assistant", text: reply }]);
     } catch {
-      setChat(c => [...c, { role: "assistant", text: "შეცდომა მოხდა. სცადე მოგვიანებით." }]);
+      setChat(c => [...c, { role: "assistant", text: AI_DOWN_MSG }]);
     }
     setChatLoading(false);
   }

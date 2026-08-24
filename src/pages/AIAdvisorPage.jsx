@@ -86,7 +86,7 @@ export default function AIAdvisorPage({ transactions, isPremium, onUpgrade }) {
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🤖</div>
           <div>
             <p style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>AI ფინანსური მრჩეველი</p>
-            <p style={{ color: "rgba(167,139,250,0.7)", fontSize: 11 }}>powered by Groq AI · უფასო</p>
+            <p style={{ color: "rgba(167,139,250,0.7)", fontSize: 11 }}>powered by OpenAI GPT-4o mini</p>
           </div>
         </div>
         <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, lineHeight: 1.5 }}>

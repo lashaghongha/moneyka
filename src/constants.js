@@ -46,7 +46,7 @@ export const PLANS = [
     ]
   },
   {
-    id: "pro", name: "Pro", price: 2.99, priceLabel: "$2.99/თვე",
+    id: "pro", name: "Pro", price: 1.49, priceLabel: "1.49₾/თვე",
     color: "#A78BFA", badge: "პოპულარული",
     features: [
       { text: "ულიმიტო ტრანზაქციები",         ok: true  },
@@ -60,7 +60,7 @@ export const PLANS = [
     ]
   },
   {
-    id: "elite", name: "Elite", price: 4.99, priceLabel: "$4.99/თვე",
+    id: "elite", name: "Elite", price: 2.99, priceLabel: "2.99₾/თვე",
     color: "#F59E0B", badge: "სრული",
     features: [
       { text: "Pro-ს ყველაფერი",           ok: true },

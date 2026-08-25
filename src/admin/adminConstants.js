@@ -1,5 +1,5 @@
 export const PLAN_COLOR = { free: "#4CAF82", pro: "#A78BFA", elite: "#F59E0B" };
-export const PLAN_PRICE = { free: 0, pro: 2.99, elite: 5.99 };
+export const PLAN_PRICE = { free: 0, pro: 1.49, elite: 2.99 };
 
 export function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();

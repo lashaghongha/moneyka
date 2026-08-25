@@ -7,10 +7,23 @@ import UsersTable    from "./UsersTable";
 
 export default function AdminApp() {
   const [authed,  setAuthed]  = useState(() => !!localStorage.getItem("mk_admin_key"));
+  const [checking, setChecking] = useState(() => !localStorage.getItem("mk_admin_key"));
   const [stats,   setStats]   = useState(null);
   const [users,   setUsers]   = useState([]);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
+
+  // No local key means the operator may have arrived via the hub tile, which set an
+  // httpOnly admin_token cookie. Probe the cookie session before falling back to the
+  // manual key login.
+  useEffect(() => {
+    if (localStorage.getItem("mk_admin_key")) return;
+    let cancelled = false;
+    adminApi.checkSession()
+      .then((ok) => { if (!cancelled && ok) setAuthed(true); })
+      .finally(() => { if (!cancelled) setChecking(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   async function loadData() {
     setLoading(true); setError("");
@@ -40,6 +53,15 @@ export default function AdminApp() {
     catch (e) { alert("შეცდომა: " + e.message); }
   }
 
+  if (checking) return (
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      background: "#0d1a11", color: "rgba(255,255,255,0.4)",
+      fontFamily: "'BPG Nino Mkhedruli','Sylfaen',Georgia,serif", fontSize: 16
+    }}>
+      ⏳ იტვირთება...
+    </div>
+  );
   if (!authed) return <AdminLogin onLogin={() => setAuthed(true)} />;
 
   return (

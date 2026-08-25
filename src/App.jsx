@@ -341,7 +341,7 @@ export default function App() {
         ) : page === "premium" ? (
           <PremiumPage currentPlan={plan} onSelectPlan={handleSelectPlan} onClose={() => setPage("home")} />
         ) : page === "ai" ? (
-          <AIAdvisorPage transactions={transactions} isPremium={isPremium} onUpgrade={() => setPage("premium")} cur={cur} />
+          <AIAdvisorPage transactions={transactions} subs={subs} goals={goals} isPremium={isPremium} onUpgrade={() => setPage("premium")} cur={cur} />
         ) : page === "recurring" ? (
           <RecurringPage transactions={transactions} isPremium={isPremium} onUpgrade={() => setPage("premium")} cur={cur} />
         ) : page === "export" ? (

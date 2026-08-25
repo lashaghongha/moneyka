@@ -91,7 +91,7 @@ export default function PremiumPage({ currentPlan, onSelectPlan, onClose }) {
                   </div>
                   {billing === "yearly" && (
                     <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 4, textDecoration: "line-through" }}>
-                      {plan.price.toFixed(2)} ₾/თვე
+                      ${plan.price.toFixed(2)}/თვე
                     </p>
                   )}
                 </div>

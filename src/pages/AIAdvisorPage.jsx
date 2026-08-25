@@ -3,7 +3,7 @@ import * as api from "../api";
 import { CATEGORIES } from "../constants";
 import PremiumLock from "../components/PremiumLock";
 
-export default function AIAdvisorPage({ transactions, isPremium, onUpgrade }) {
+export default function AIAdvisorPage({ transactions, subs = [], goals = [], isPremium, onUpgrade }) {
   const [loading, setChatLoading2] = useState(false);
   const [advice, setAdvice]       = useState(null);
   const [chat, setChat]           = useState([]);
@@ -17,10 +17,42 @@ export default function AIAdvisorPage({ transactions, isPremium, onUpgrade }) {
   })).filter(c => c.total > 0);
   const totalSpend = byCat.reduce((s, c) => s + c.total, 0);
   const income     = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const balance    = income - totalSpend;
+
+  // გამოწერები (მხოლოდ active)
+  const activeSubs = subs
+    .filter(s => s.active !== false)
+    .map(s => ({ name: s.name, price: s.price, nextDate: s.nextDate, currency: s.currency || "₾" }));
+
+  // განმეორებადი ტრანზაქციები (unique by desc)
+  const recurringMap = new Map();
+  transactions.filter(t => t.recurring).forEach(t => {
+    if (!recurringMap.has(t.desc)) recurringMap.set(t.desc, t);
+  });
+  const recurringList = Array.from(recurringMap.values()).map(t => ({
+    desc: t.desc, amount: t.amount, freq: t.recFreq || "monthly"
+  }));
+
+  // მიზნები
+  const goalsList = goals.map(g => ({
+    name: g.name, target: g.target, saved: g.saved || g.current || 0, currency: g.currency || "₾"
+  }));
+
+  // ბიუჯეტი localStorage-დან
+  const budgetsRaw = (() => { try { return JSON.parse(localStorage.getItem("moneyka_budgets") || "{}"); } catch { return {}; } })();
+  const budgetsList = Object.entries(budgetsRaw)
+    .filter(([, v]) => parseFloat(v) > 0)
+    .map(([catId, v]) => {
+      const cat = CATEGORIES.find(c => c.id === catId);
+      return { category: cat ? cat.label : catId, monthlyBudget: parseFloat(v) };
+    });
+
+  // სრული კონტექსტი ყველა request-ისთვის
+  const userContext = { byCat, totalSpend, income, balance, subs: activeSubs, goals: goalsList, budgets: budgetsList, recurring: recurringList };
 
   function isApiError(text) {
     return text && (
-      text.startsWith("Groq შეცდომა:") ||
+      text.startsWith("AI შეცდომა:") ||
       text.startsWith("კავშირის შეცდომა:") ||
       text.includes("API key") ||
       text.includes("არ არის კონფიგურირებული")
@@ -32,7 +64,7 @@ export default function AIAdvisorPage({ transactions, isPremium, onUpgrade }) {
   async function getAdvice() {
     setChatLoading2(true);
     try {
-      const data = await api.getAdvice({ byCat, totalSpend, income });
+      const data = await api.getAdvice(userContext);
       setAdvice(isApiError(data.text) ? AI_DOWN_MSG : data.text);
     } catch {
       setAdvice(AI_DOWN_MSG);
@@ -49,7 +81,7 @@ export default function AIAdvisorPage({ transactions, isPremium, onUpgrade }) {
     setChatLoading(true);
     try {
       const messages = newChat.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
-      const data = await api.sendChat({ messages, byCat, totalSpend, income });
+      const data = await api.sendChat({ messages, ...userContext });
       const reply = isApiError(data.text) ? AI_DOWN_MSG : data.text;
       setChat(c => [...c, { role: "assistant", text: reply }]);
     } catch {

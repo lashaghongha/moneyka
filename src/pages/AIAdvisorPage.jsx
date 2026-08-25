@@ -50,6 +50,24 @@ export default function AIAdvisorPage({ transactions, subs = [], goals = [], isP
   // სრული კონტექსტი ყველა request-ისთვის
   const userContext = { byCat, totalSpend, income, balance, subs: activeSubs, goals: goalsList, budgets: budgetsList, recurring: recurringList };
 
+  // ── Free plan AI quota: 3 კითხვა/დღე ──────────────────────────────────────
+  const FREE_DAILY_LIMIT = 3;
+  function getAiUsage() {
+    try {
+      const raw = JSON.parse(localStorage.getItem("mk_ai_usage") || "{}");
+      const today = new Date().toISOString().slice(0, 10);
+      if (raw.date !== today) return { date: today, count: 0 };
+      return raw;
+    } catch { return { date: new Date().toISOString().slice(0, 10), count: 0 }; }
+  }
+  function incrementAiUsage() {
+    const u = getAiUsage();
+    localStorage.setItem("mk_ai_usage", JSON.stringify({ date: u.date, count: u.count + 1 }));
+  }
+  const aiUsage    = getAiUsage();
+  const aiLeft     = isPremium ? Infinity : Math.max(0, FREE_DAILY_LIMIT - aiUsage.count);
+  const aiExhausted = !isPremium && aiLeft === 0;
+
   function isApiError(text) {
     return text && (
       text.startsWith("AI შეცდომა:") ||
@@ -62,7 +80,9 @@ export default function AIAdvisorPage({ transactions, subs = [], goals = [], isP
   const AI_DOWN_MSG = "⚠️ AI სერვისი დროებით მიუწვდომელია. გთხოვ სცადე მოგვიანებით.";
 
   async function getAdvice() {
+    if (aiExhausted) return;
     setChatLoading2(true);
+    incrementAiUsage();
     try {
       const data = await api.getAdvice(userContext);
       setAdvice(isApiError(data.text) ? AI_DOWN_MSG : data.text);
@@ -73,12 +93,13 @@ export default function AIAdvisorPage({ transactions, subs = [], goals = [], isP
   }
 
   async function sendChat() {
-    if (!input.trim()) return;
+    if (!input.trim() || aiExhausted) return;
     const userMsg = input.trim();
     setInput("");
     const newChat = [...chat, { role: "user", text: userMsg }];
     setChat(newChat);
     setChatLoading(true);
+    incrementAiUsage();
     try {
       const messages = newChat.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
       const data = await api.sendChat({ messages, ...userContext });
@@ -90,21 +111,24 @@ export default function AIAdvisorPage({ transactions, subs = [], goals = [], isP
     setChatLoading(false);
   }
 
-  if (!isPremium) return (
-    <div style={{ padding: "20px 16px 100px" }}>
-      <div style={{ position: "relative", borderRadius: 20, overflow: "hidden" }}>
-        <div style={{ filter: "blur(4px)", pointerEvents: "none", padding: "20px",
-          background: "#1a2e22", borderRadius: 20 }}>
-          <p style={{ color: "#A78BFA", fontWeight: 700, fontSize: 16, marginBottom: 12 }}>🤖 AI ფინანსური მრჩეველი</p>
-          <div style={{ background: "rgba(167,139,250,0.1)", borderRadius: 16, padding: "16px", marginBottom: 12 }}>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>💡 შენი ხარჯების ანალიზი...</p>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: "16px" }}>
-            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>საკვებზე ბევრს ხარჯავ — სცადე...</p>
-          </div>
-        </div>
-        <PremiumLock plan="Pro" onUpgrade={onUpgrade} />
+  // Free quota banner (shown instead of hard lock)
+  const quotaBanner = !isPremium && (
+    <div onClick={aiExhausted ? onUpgrade : undefined} style={{
+      background: aiExhausted ? "rgba(167,139,250,0.12)" : "rgba(76,175,130,0.08)",
+      border: `1px solid ${aiExhausted ? "rgba(167,139,250,0.3)" : "rgba(76,175,130,0.25)"}`,
+      borderRadius: 16, padding: "12px 16px", marginBottom: 16,
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      cursor: aiExhausted ? "pointer" : "default"
+    }}>
+      <div>
+        <p style={{ color: aiExhausted ? "#A78BFA" : "#4CAF82", fontWeight: 600, fontSize: 13 }}>
+          {aiExhausted ? "🔒 დღიური ლიმიტი ამოიწურა" : `✨ ${aiLeft}/${FREE_DAILY_LIMIT} უფასო კითხვა დარჩა დღეს`}
+        </p>
+        <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>
+          {aiExhausted ? "Pro-ზე — ულიმიტო კითხვები · 1.49₾/თვე" : "ხვალ განახლდება · Pro-ზე ულიმიტო"}
+        </p>
       </div>
+      {aiExhausted && <span style={{ color: "#A78BFA", fontSize: 18 }}>›</span>}
     </div>
   );
 
@@ -126,16 +150,19 @@ export default function AIAdvisorPage({ transactions, subs = [], goals = [], isP
         </p>
       </div>
 
+      {quotaBanner}
+
       {/* Quick Analysis */}
       {!advice && (
-        <button onClick={getAdvice} disabled={loading} style={{
-          width: "100%", background: "linear-gradient(135deg,#A78BFA,#7C3AED)",
-          border: "none", borderRadius: 16, padding: "16px", color: "#fff",
-          fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit",
+        <button onClick={getAdvice} disabled={loading || aiExhausted} style={{
+          width: "100%", background: aiExhausted ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg,#A78BFA,#7C3AED)",
+          border: aiExhausted ? "1px solid rgba(255,255,255,0.1)" : "none",
+          borderRadius: 16, padding: "16px", color: aiExhausted ? "rgba(255,255,255,0.3)" : "#fff",
+          fontWeight: 700, fontSize: 15, cursor: aiExhausted ? "default" : "pointer", fontFamily: "inherit",
           marginBottom: 20, opacity: loading ? 0.7 : 1,
-          boxShadow: "0 6px 20px rgba(124,58,237,0.4)"
+          boxShadow: aiExhausted ? "none" : "0 6px 20px rgba(124,58,237,0.4)"
         }}>
-          {loading ? "⏳ ანალიზდება..." : "✨ ჩემი ხარჯების ანალიზი"}
+          {loading ? "⏳ ანალიზდება..." : aiExhausted ? "🔒 ლიმიტი ამოიწურა" : "✨ ჩემი ხარჯების ანალიზი"}
         </button>
       )}
 
@@ -194,12 +221,13 @@ export default function AIAdvisorPage({ transactions, subs = [], goals = [], isP
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>
-        <input value={input} onChange={e => setInput(e.target.value)}
+        <input value={input} onChange={e => !aiExhausted && setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && sendChat()}
-          placeholder="შეკითხვა..."
+          placeholder={aiExhausted ? "ლიმიტი ამოიწურა..." : "შეკითხვა..."}
+          disabled={aiExhausted}
           style={{
             flex: 1, background: "#1a2e22", border: "1px solid rgba(167,139,250,0.2)",
-            borderRadius: 14, padding: "12px 14px", color: "#fff", fontSize: 14,
+            borderRadius: 14, padding: "12px 14px", color: aiExhausted ? "rgba(255,255,255,0.3)" : "#fff", fontSize: 14,
             outline: "none", fontFamily: "inherit"
           }} />
         <button onClick={sendChat} style={{

@@ -15,7 +15,6 @@ export default function HomePage({ transactions, goals, onAddTx, plan, onUpgrade
   const recent    = [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   const isPremium = plan !== "free";
   const txCount   = transactions.length;
-  const freeLimit = 100;
 
   // ── Per-currency balances ──────────────────────────────────────────────────
   const balByCur = {};
@@ -122,20 +121,18 @@ export default function HomePage({ transactions, goals, onAddTx, plan, onUpgrade
       </div>
 
       <div style={{ padding: "0 16px" }}>
-        {/* Free plan limit */}
-        {!isPremium && (
+        {/* Pro upsell banner (soft, not a limit) */}
+        {!isPremium && txCount > 10 && (
           <div onClick={onUpgrade} style={{
-            background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.25)",
-            borderRadius: 16, padding: "12px 16px", marginTop: 16, marginBottom: 4,
+            background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.2)",
+            borderRadius: 16, padding: "10px 16px", marginTop: 16, marginBottom: 4,
             display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer"
           }}>
             <div>
-              <p style={{ color: "#A78BFA", fontWeight: 600, fontSize: 13 }}>🔒 {txCount}/{freeLimit} ტრანზაქცია</p>
-              <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>გაიუმჯობესე Pro-ზე</p>
+              <p style={{ color: "#A78BFA", fontWeight: 600, fontSize: 13 }}>✨ AI მრჩეველი + სრული ანალიტიკა</p>
+              <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>Pro — 1.49₾/თვე</p>
             </div>
-            <div style={{ height: 6, width: 80, background: "rgba(255,255,255,0.08)", borderRadius: 6 }}>
-              <div style={{ height: "100%", width: `${(txCount / freeLimit) * 100}%`, background: "#A78BFA", borderRadius: 6 }} />
-            </div>
+            <span style={{ color: "#A78BFA", fontSize: 18 }}>›</span>
           </div>
         )}
 

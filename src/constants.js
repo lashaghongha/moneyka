@@ -35,11 +35,11 @@ export const PLANS = [
     id: "free", name: "უფასო", price: 0, priceLabel: "უფასოდ",
     color: "#4CAF82",
     features: [
-      { text: "100 ტრანზაქცია/თვე",          ok: true  },
+      { text: "ულიმიტო ტრანზაქციები",         ok: true  },
       { text: "3 შენახვის მიზანი",            ok: true  },
       { text: "ბაზისური ანალიტიკა",           ok: true  },
-      { text: "AI ფინანსური მრჩეველი",        ok: false },
-      { text: "განმეორებადი ტრანზაქციები",         ok: false },
+      { text: "AI — 3 კითხვა/დღე",            ok: true  },
+      { text: "განმეორებადი ტრანზაქციები",    ok: false },
       { text: "PDF/Excel ექსპორტი",           ok: false },
       { text: "ბიუჯეტის სმარტ-გაფრთხილება", ok: false },
       { text: "ჩვევის ანალიზი",               ok: false },
@@ -63,14 +63,14 @@ export const PLANS = [
     id: "elite", name: "Elite", price: 2.99, priceLabel: "2.99₾/თვე",
     color: "#F59E0B", badge: "სრული",
     features: [
-      { text: "Pro-ს ყველაფერი",           ok: true },
-      { text: "ჩვევის ანალიზი",             ok: true },
-      { text: "ოჯახის 3 ანგარიში",          ok: true },
-      { text: "პრიორიტეტული მხარდაჭერა",  ok: true },
-      { text: "ადრეული ახალი ფუნქციები",   ok: true },
-      { text: "ყოველწლიური ანგარიში",      ok: true },
-      { text: "კრიპტო ხარჯების თვალყური", ok: true },
-      { text: "პერსონალური ფინ. გეგმა",   ok: true },
+      { text: "Pro-ს ყველაფერი",              ok: true },
+      { text: "ჩვევის ანალიზი",               ok: true },
+      { text: "Cloud backup & sync",           ok: true },
+      { text: "პრიორიტეტული მხარდაჭერა",     ok: true },
+      { text: "ადრეული ახალი ფუნქციები",      ok: true },
+      { text: "AI-ს ულიმიტო კითხვები",        ok: true },
+      { text: "ყოველთვიური PDF ანგარიში",     ok: true },
+      { text: "მრავალი ვალუტის ანალიტიკა",   ok: true },
     ]
   }
 ];

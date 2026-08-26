@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PLANS } from "../constants";
 import { auth } from "../storage";
 import { requestPermission } from "../notifications";
 import { registerPush, unregisterPush } from "../push";
 import { getDeviceId } from "../storage";
+import {
+  onInstallPromptChange, hasInstallPrompt, triggerInstall,
+  isStandaloneMode, isIOS as detectIOS
+} from "../installPrompt";
 
 // ─── small reusable toggle ────────────────────────────────────────────────────
 function Toggle({ on, onToggle }) {
@@ -49,6 +53,20 @@ export default function ProfilePage({ plan, setPlan, setPage, onLogout, currency
 
   // reset confirm
   const [confirmReset, setConfirmReset] = useState(false);
+
+  // PWA install
+  const [canInstall, setCanInstall] = useState(() => hasInstallPrompt());
+  const installed = isStandaloneMode();
+  const iosDevice = detectIOS();
+
+  useEffect(() => {
+    const unsub = onInstallPromptChange(setCanInstall);
+    return unsub;
+  }, []);
+
+  async function handleInstall() {
+    await triggerInstall();
+  }
 
   function togglePanel(id) {
     setOpenPanel(v => v === id ? null : id);
@@ -317,6 +335,67 @@ export default function ProfilePage({ plan, setPlan, setPage, onLogout, currency
             </div>
             <Toggle on={darkMode} onToggle={() => onThemeChange(!darkMode)} />
           </div>
+        </div>
+
+        {/* 📱 ინსტალაცია */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+          <div onClick={() => !installed && togglePanel("install")} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "14px 16px", cursor: installed ? "default" : "pointer"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>📱</span>
+              <div>
+                <p style={{ color: "#fff", fontSize: 14, margin: 0 }}>ინსტალაცია</p>
+                <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, margin: 0 }}>
+                  {installed ? "✅ დაინსტალირებულია" : "Android / iOS"}
+                </p>
+              </div>
+            </div>
+            {!installed && (
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>
+                {openPanel === "install" ? "∨" : "›"}
+              </span>
+            )}
+          </div>
+          {openPanel === "install" && !installed && (
+            <Panel>
+              {iosDevice ? (
+                <>
+                  <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 }}>
+                    iPhone / iPad-ზე ინსტალაციისთვის:
+                  </p>
+                  {[
+                    ["1️⃣", "Safari-ში გახსენი moneyka.ge"],
+                    ["2️⃣", "Share ღილაკზე დააჭირე (↑)"],
+                    ["3️⃣", "აირჩიე \"Add to Home Screen\""],
+                  ].map(([n, t]) => (
+                    <div key={n} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "center" }}>
+                      <span style={{ fontSize: 16 }}>{n}</span>
+                      <p style={{ color: "#fff", fontSize: 13, margin: 0 }}>{t}</p>
+                    </div>
+                  ))}
+                </>
+              ) : canInstall ? (
+                <>
+                  <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, margin: "0 0 12px" }}>
+                    Android-ზე სწრაფად დააინსტალირე — მუშაობს offline-ზეც.
+                  </p>
+                  <button onClick={handleInstall} style={{
+                    width: "100%", background: "#4CAF82", border: "none",
+                    borderRadius: 10, padding: "12px", color: "#000",
+                    fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit"
+                  }}>
+                    📲 Android-ზე ინსტალაცია
+                  </button>
+                </>
+              ) : (
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
+                  Chrome-ში გახსენი <strong style={{ color: "#4CAF82" }}>moneyka.ge</strong> → მენიუ (⋮) → <strong style={{ color: "#4CAF82" }}>Add to Home Screen</strong>
+                </p>
+              )}
+            </Panel>
+          )}
         </div>
 
         {/* დახმარება */}

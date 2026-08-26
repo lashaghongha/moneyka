@@ -1,53 +1,49 @@
 import { useState, useEffect } from "react";
+import {
+  onInstallPromptChange, hasInstallPrompt, triggerInstall,
+  isStandaloneMode, isIOS as detectIOS
+} from "../installPrompt";
 
 /**
- * Shows "Install App" banner when the browser fires beforeinstallprompt.
- * On iOS shows a manual instruction (iOS doesn't support beforeinstallprompt).
+ * bottom banner — ჩნდება ავტომატურად Chrome-ის prompt-ზე ან iOS-ზე.
+ * install logic shared installPrompt.js-ში.
  */
 export default function PWAInstallBanner() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [show, setShow]                     = useState(false);
-  const [isIOS, setIsIOS]                   = useState(false);
-  const [dismissed, setDismissed]           = useState(
+  const [canInstall, setCanInstall] = useState(() => hasInstallPrompt());
+  const [show, setShow]            = useState(false);
+  const [ios, setIos]              = useState(false);
+  const [dismissed, setDismissed]  = useState(
     () => !!localStorage.getItem("pwa_banner_dismissed")
   );
 
   useEffect(() => {
-    // Detect iOS
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-    const standalone = window.navigator.standalone === true;
-    if (ios && !standalone && !dismissed) setIsIOS(true);
+    if (isStandaloneMode() || dismissed) return;
 
-    // Android / Chrome
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      if (!dismissed) setShow(true);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, [dismissed]);
-
-  // Auto-show iOS banner after 3 s
-  useEffect(() => {
-    if (isIOS && !dismissed) {
+    // iOS manual instruction (3s delay)
+    if (detectIOS()) {
+      setIos(true);
       const t = setTimeout(() => setShow(true), 3000);
       return () => clearTimeout(t);
     }
-  }, [isIOS, dismissed]);
+
+    // Android/Chrome — prompt event-ზე ველოდებით
+    const unsub = onInstallPromptChange((available) => {
+      setCanInstall(available);
+      if (available) setShow(true);
+    });
+    if (hasInstallPrompt()) setShow(true);
+    return unsub;
+  }, [dismissed]);
 
   function dismiss() {
     setShow(false);
-    localStorage.setItem("pwa_banner_dismissed", "1");
     setDismissed(true);
+    localStorage.setItem("pwa_banner_dismissed", "1");
   }
 
   async function install() {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") dismiss();
-    else setDeferredPrompt(null);
+    const accepted = await triggerInstall();
+    if (accepted) dismiss();
   }
 
   if (!show || dismissed) return null;
@@ -62,15 +58,15 @@ export default function PWAInstallBanner() {
       display: "flex", alignItems: "center", gap: 12,
       zIndex: 9999, boxShadow: "0 8px 32px #00000066"
     }}>
-      <div style={{ fontSize: 36, flexShrink: 0 }}>₾</div>
+      <div style={{ fontSize: 32, flexShrink: 0 }}>₾</div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, color: "#fff", fontSize: 14, fontWeight: 700 }}>
           MoneyKa-ს ინსტალაცია
         </p>
-        {isIOS ? (
+        {ios ? (
           <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
-            გახსენი Safari → <strong style={{ color: "#4CAF82" }}>Share</strong> → <strong style={{ color: "#4CAF82" }}>Add to Home Screen</strong>
+            Share → <strong style={{ color: "#4CAF82" }}>Add to Home Screen</strong>
           </p>
         ) : (
           <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
@@ -80,7 +76,7 @@ export default function PWAInstallBanner() {
       </div>
 
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        {!isIOS && (
+        {!ios && canInstall && (
           <button onClick={install} style={{
             background: "#4CAF82", color: "#000", border: "none",
             borderRadius: 8, padding: "6px 12px", fontSize: 12,

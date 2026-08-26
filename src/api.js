@@ -4,6 +4,18 @@ const BASE = import.meta.env.VITE_API_URL ?? (
     : "http://localhost:5141/api"
 );
 
+// ყოველი device-ი იღებს ერთხელ-გენერირებულ საიდუმლოს
+// secret-ი ინახება localStorage-ში და validationისთვის backend-ს ეგზავნება
+function getDeviceSecret() {
+  const KEY = "moneyka_device_secret";
+  let s = localStorage.getItem(KEY);
+  if (!s) {
+    s = crypto.randomUUID();
+    localStorage.setItem(KEY, s);
+  }
+  return s;
+}
+
 async function req(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -35,10 +47,12 @@ export const checkPushReminders = (payload) => req("/push/check", { method: "POS
 export const syncPush = (deviceId, transactions, goals, subs, budgets) =>
   req("/sync/push", { method: "POST", body: JSON.stringify({
     deviceId,
+    deviceSecret: getDeviceSecret(),
     transactions: JSON.stringify(transactions),
     goals:        JSON.stringify(goals),
     subs:         JSON.stringify(subs),
     budgets:      JSON.stringify(budgets),
   })});
 
-export const syncPull = (deviceId) => req(`/sync/pull?deviceId=${encodeURIComponent(deviceId)}`);
+export const syncPull = (deviceId) =>
+  req(`/sync/pull?deviceId=${encodeURIComponent(deviceId)}&deviceSecret=${encodeURIComponent(getDeviceSecret())}`);

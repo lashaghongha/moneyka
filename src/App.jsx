@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import * as api from "./api";
 import { storage, getDeviceId, auth } from "./storage";
 import { checkBudgetWarning, checkSubscriptionReminders } from "./notifications";
+import { initInstallPrompt } from "./installPrompt";
+
+// PWA install prompt-ის global listener — ერთხელ, module load-ზე
+initInstallPrompt();
 
 // Components
 import BottomNav        from "./components/BottomNav";

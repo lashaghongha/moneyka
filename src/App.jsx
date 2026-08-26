@@ -244,10 +244,11 @@ export default function App() {
     return () => clearTimeout(t);
   }, [loggedIn]);
 
-  // Ping + plan sync on startup
+  // Ping + plan sync + cloud pull on login
   useEffect(() => {
     if (!loggedIn) return;
     const deviceId = getDeviceId();
+
     // Ping-ი backend-ის plan-ს აბრუნებს (admin-მა შეიძლება შეცვალა)
     api.pingUser(deviceId, storage.getPlan(), auth.getName(), localStorage.getItem("moneyka_user_phone") || "")
       .then(({ plan }) => {
@@ -257,12 +258,46 @@ export default function App() {
         }
       })
       .catch(() => {});
-  }, [loggedIn]);
 
-  // Persist to localStorage
+    // Cloud pull — ახალ მოწყობილობაზე server-ის მონაცემები local-ს ანაცვლებს
+    api.syncPull(deviceId).then(data => {
+      if (!data?.found) {
+        // პირველი login — local data-ს server-ზე ვინახავთ
+        api.syncPush(deviceId, transactions, goals, subs, storage.getBudgets()).catch(() => {});
+        return;
+      }
+      // server-ზე მონაცემები არსებობს — ვამოწმებთ ახალია თუ local
+      const serverTx = JSON.parse(data.transactions || "[]");
+      if (serverTx.length > transactions.length) {
+        // server-ზე მეტი მონაცემია — ვაღდგენთ
+        const serverGoals   = JSON.parse(data.goals   || "[]");
+        const serverSubs    = JSON.parse(data.subs    || "[]");
+        const serverBudgets = JSON.parse(data.budgets || "{}");
+        setTransactions(serverTx);
+        setGoals(serverGoals);
+        setSubs(serverSubs);
+        storage.saveBudgets(serverBudgets);
+        localStorage.setItem("moneyka_budgets", JSON.stringify(serverBudgets));
+      } else {
+        // local-ზე მეტია — local-ს server-ზე ვინახავთ
+        api.syncPush(deviceId, transactions, goals, subs, storage.getBudgets()).catch(() => {});
+      }
+    }).catch(() => {});
+  }, [loggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist to localStorage + debounced cloud push
   useEffect(() => { storage.saveTransactions(transactions); }, [transactions]);
   useEffect(() => { storage.saveGoals(goals);               }, [goals]);
   useEffect(() => { storage.saveSubs(subs);                 }, [subs]);
+
+  // Cloud push — ყოველ 60 წამში ან მნიშვნელოვანი ცვლილებისას
+  useEffect(() => {
+    if (!loggedIn) return;
+    const timer = setTimeout(() => {
+      api.syncPush(getDeviceId(), transactions, goals, subs, storage.getBudgets()).catch(() => {});
+    }, 3000); // 3 წამის debounce
+    return () => clearTimeout(timer);
+  }, [transactions, goals, subs, loggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     storage.savePlan(plan);
     if (loggedIn) api.setUserPlan(getDeviceId(), plan).catch(() => {});

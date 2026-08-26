@@ -30,3 +30,15 @@ export const getHabitsSuggestions = (payload) => req("/ai/habits",  { method: "P
 
 // Push notifications
 export const checkPushReminders = (payload) => req("/push/check", { method: "POST", body: JSON.stringify(payload) });
+
+// Cloud sync
+export const syncPush = (deviceId, transactions, goals, subs, budgets) =>
+  req("/sync/push", { method: "POST", body: JSON.stringify({
+    deviceId,
+    transactions: JSON.stringify(transactions),
+    goals:        JSON.stringify(goals),
+    subs:         JSON.stringify(subs),
+    budgets:      JSON.stringify(budgets),
+  })});
+
+export const syncPull = (deviceId) => req(`/sync/pull?deviceId=${encodeURIComponent(deviceId)}`);

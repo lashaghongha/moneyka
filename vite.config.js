@@ -15,14 +15,16 @@ export default defineConfig({
       manifest: {
         name: 'MoneyKa — ფინანსების მართვა',
         short_name: 'MoneyKa',
-        description: 'ჭკვიანი ფინანსური ასისტენტი',
+        description: 'ჭკვიანი ფინანსური ასისტენტი — შემოსავლები, ხარჯები, AI მრჩეველი',
         theme_color: '#0d1a11',
         background_color: '#0a160f',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/?utm_source=pwa',
+        id: 'ge.moneyka.app',
         lang: 'ka',
+        categories: ['finance', 'productivity'],
         icons: [
           {
             src: 'pwa-64x64.png',

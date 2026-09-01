@@ -1,6 +1,7 @@
 import { CATEGORIES } from "../constants";
 import SectionHeader from "../components/SectionHeader";
 import TxRow from "../components/TxRow";
+import WeeklyReportCard from "../components/WeeklyReportCard";
 
 const ALL_CURRENCIES = ["₾", "$", "€"];
 const GEO_MONTHS_SHORT = ["იანვ","თებ","მარ","აპრ","მაი","ივნ","ივლ","აგვ","სექ","ოქტ","ნოე","დეკ"];
@@ -121,6 +122,9 @@ export default function HomePage({ transactions, goals, onAddTx, plan, onUpgrade
       </div>
 
       <div style={{ padding: "0 16px" }}>
+        {/* ── კვირის ანგარიში ── */}
+        <WeeklyReportCard transactions={transactions} cur={cur} onNavigate={onNavigate} />
+
         {/* Pro upsell banner (soft, not a limit) */}
         {!isPremium && txCount > 10 && (
           <div onClick={onUpgrade} style={{
